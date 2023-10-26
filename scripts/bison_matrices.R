@@ -6,6 +6,7 @@ library(data.table)
 # Arg2 = mask
 # Arg3 = outfile
 args = commandArgs(trailingOnly=TRUE)
+print(args)
 
 # args=c()
 # args[1] = "./micro_file_lists/sub6_ses2_Label.txt"
