@@ -4,8 +4,8 @@ library(data.table)
 library(matrixStats)
 
 # Combine sub-matrices into one matrix with all subjects
-loc2 = list.files("../WMH_micro_spatial/micro_matrices", pattern="*ses2_Label_whole_brain.tsv", full.names=TRUE)
-loc3 = list.files("../WMH_micro_spatial/micro_matrices", pattern="*ses3_Label_whole_brain.tsv", full.names=TRUE)
+loc2 = list.files("./bison_matrices", pattern="*ses2_Label_whole_brain.tsv", full.names=TRUE)
+loc3 = list.files("./bison_matrices", pattern="*ses3_Label_whole_brain.tsv", full.names=TRUE)
 
 mask=mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
 
@@ -59,32 +59,71 @@ prev_final23 = matrix(nrow=length(tissue), ncol=sum(mask[] == 1))
 
 for(t in 1:length(tissue)) {
     print(tissue[t])
-    prev_final[t,] = colSums(prev[[t]], na.rm=TRUE)
+    prev_final2[t,] = colSums(prev2[[t]], na.rm=TRUE)
+    prev_final3[t,] = colSums(prev3[[t]], na.rm=TRUE)
+    prev_final23[t,] = prev_final2[t,] + prev_final3[t,]
 }
 
-mode(prev_final) = 'integer'
-write.table(prev_final, "./results/tissue_prevalence.tsv", row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
+
+mode(prev_final2) = 'integer'
+mode(prev_final3) = 'integer'
+mode(prev_final23) = 'integer'
+
+fwrite(prev_final2, "./tissue_prevalence/tissue_prevalence_ses2.tsv", row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
+fwrite(prev_final3, "./tissue_prevalence/tissue_prevalence_ses3.tsv", row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
+fwrite(prev_final23, "./tissue_prevalence/tissue_prevalence_ses23.tsv", row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
 
 # Write minc files
-prev_final = fread("./results/tissue_prevalence.tsv")
+prev_final2 = as.data.frame(fread("./tissue_prevalence/tissue_prevalence_ses2.tsv"))
+prev_final3 = as.data.frame(fread("./tissue_prevalence/tissue_prevalence_ses3.tsv"))
+prev_final23 = as.data.frame(fread("./tissue_prevalence/tissue_prevalence_ses23.tsv"))
 
 for(t in 1:length(tissue)) {
-    outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
-    maskvol <- mincGetVolume("../../../UKB/temporary_template/Mask_2mm.mnc")
+    outvol <- mincGetVolume("../UKB/temporary_template/avg.020_2mm.mnc")
+    maskvol <- mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
     outvol[] <- 0
-    outvol[maskvol > 0.5] <- as.numeric(prev_final[t,])
-    mincWriteVolume(outvol, paste0("./results/",t,"_",tissue[t],"_prevalence.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm.mnc")
+    outvol[maskvol > 0.5] <- as.numeric(prev_final2[t,])
+    mincWriteVolume(outvol, paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses2.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 }
 
+for(t in 1:length(tissue)) {
+    outvol <- mincGetVolume("../UKB/temporary_template/avg.020_2mm.mnc")
+    maskvol <- mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
+    outvol[] <- 0
+    outvol[maskvol > 0.5] <- as.numeric(prev_final3[t,])
+    mincWriteVolume(outvol, paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses3.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
+}
 
+for(t in 1:length(tissue)) {
+    outvol <- mincGetVolume("../UKB/temporary_template/avg.020_2mm.mnc")
+    maskvol <- mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
+    outvol[] <- 0
+    outvol[maskvol > 0.5] <- as.numeric(prev_final23[t,])
+    mincWriteVolume(outvol, paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
+}
 
+# Write masks of prevalence >0 and >=100
 
+for(t in 1:length(tissue)) {
+    print(tissue[t])
+    mask_1 = ifelse(prev_final23[t,] > 0, 1, 0)
+    mask_100 = ifelse(prev_final23[t,] >= 100, 1, 0)
+    fwrite(as.data.frame(mask_1), paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23_min1.tsv"))
+    fwrite(as.data.frame(mask_100), paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23_min100.tsv"))
+    print(sum(mask_1 == 1))
+    print(sum(mask_100 == 1))
 
+    outvol <- mincGetVolume("../UKB/temporary_template/avg.020_2mm.mnc")
+    maskvol <- mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
+    outvol[] <- 0
+    outvol[maskvol > 0.5] <- as.numeric(mask_1)
+    mincWriteVolume(outvol, paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23_min1.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 
-
-
-
-
-
+    outvol <- mincGetVolume("../UKB/temporary_template/avg.020_2mm.mnc")
+    maskvol <- mincGetVolume("../UKB/temporary_template/Mask_2mm_dil2.mnc")
+    outvol[] <- 0
+    outvol[maskvol > 0.5] <- as.numeric(mask_100)
+    mincWriteVolume(outvol, paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23_min100.mnc"), clobber=TRUE, like="../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
+}
 
 
