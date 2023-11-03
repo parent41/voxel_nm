@@ -30,22 +30,5 @@ for (i in 1:length(fl)){
     mat[i,]=mincGetVolume(fl[i])[mask>0.5]
 }
 
-# Load masks of tissue prevalence >=100 (excluding ventricles, csf, wmh)
-tissue=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
+fwrite(mat, paste0("./micro_matrices/",args[3],".tsv"), row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
 
-prev = list()
-
-for (t in 3:(length(tissue)-1)) {
-    prev[[t]] = as.data.frame(fread(paste0("./tissue_prevalence/",t,"_",tissue[t],"_prevalence_ses23_min100.tsv")))
-}
-
-# Write matrices of micro within mask for subject chunk (excluding ventricles, csf, wmh)
-for (t in 3:(length(tissue)-1)) {
-    print(tissue[t])
-    mat_t = mat[,prev[[t]] == 1]
-
-    fwrite(mat_t, paste0("./micro_matrices/",t,"_",tissue[t],"_",args[3],".tsv"), row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
-}
-
-
-fwrite(mat, args[3], row.names=FALSE, col.names=FALSE, sep='\t', quote=FALSE)
