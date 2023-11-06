@@ -139,17 +139,8 @@ do
     done
 done > joblist_norm_models_BLR
 
-qbatch -c 1 -w 1:00:00 joblist_test
+qbatch -c 1 -w 0:30:00 joblist_test
+qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
 
 #endregion
-
-
-
-
-
-
-
-
-
-
 
