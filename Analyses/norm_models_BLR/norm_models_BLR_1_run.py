@@ -28,7 +28,7 @@ random.seed(123)
 num_micro = int(sys.argv[1])
 num_chunk = int(sys.argv[2])
 # num_micro = 0
-# num_chunk = 18
+# num_chunk = 0
 
 names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM"]
 tissues = ['Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH']
@@ -184,14 +184,17 @@ def run_nm(i):
                     res[c] = demo_pred[(demo_pred['Sex'] == sex) & (demo_pred['Age'] == age)]['SD'].values
     return(res)
 
-# Run for all NM for all voxels and all brain tissue types using parallelized processes
+# Run nm for all voxels (in chunk) and all brain tissue types using parallelized processes
 num_cpus = mp.cpu_count()
 
-for t_id,t in enumerate(range(2,8)):
+for t in range(2,8):
     print(f"\n--------------------------\nTissue type = {tissues[t]}\n--------------------------\n")
+    print(t)
+    print((label==(t+1)).sum().sum())
     micro_tissue = copy.copy(micro)
-    micro_tissue[label != t] = np.nan
-    results = Parallel(n_jobs=int(num_cpus/2))(delayed(run_nm)(i) for i in range(micro_tissue.shape[1]-1))
+    micro_tissue[label != (t+1)] = np.nan
+    print((micro_tissue > 0).sum().sum())
+    results = Parallel(n_jobs=int(num_cpus/2))(delayed(run_nm)(i) for i in range(micro_tissue.shape[1]))
     results = pd.concat(results, ignore_index=True)
     results.to_csv(f"./results/nm_{name}_{tissues[t]}_vox_{chunks[num_chunk][0]}_{chunks[num_chunk][-1]}.tsv", sep='\t', index=False, na_rep="NA")
 

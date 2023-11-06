@@ -1,9 +1,12 @@
 
 library(data.table)
+library(RMINC)
 
-names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
-# tissues = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
-tissues = c('Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
+# names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
+names = c("FA")
+
+tissues = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
+
 
 for (n in 1:length(names)) {
     print(names[n])
@@ -18,8 +21,12 @@ for (n in 1:length(names)) {
 
         # load first file
         nm = fread(files[1])
+        print(files[1])
+        print(dim(nm))
         for (i in 2:length(files)) {
-            nm = rbind(nm, fread(files[1]))
+            print(files[i])
+            print(dim(fread(files[i])))
+            nm = rbind(nm, fread(files[i]))
         }
 
         # Delete chunk results
@@ -31,12 +38,4 @@ for (n in 1:length(names)) {
 }
 
 
-# Check how many NAs...
-files = list.files(path="./results", pattern=paste0("nm_",names[n],"*"), full.names=TRUE)
 
-list_nm = list()
-
-for (i in 1:length(files)) {
-    list_nm[[i]] = as.data.frame(fread(files[i]))
-    print(summary(list_nm[[i]]$N))
-}
