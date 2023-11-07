@@ -26,7 +26,7 @@ save_to_mnc = "NO"
 dir.create("./results/mnc", showWarnings=FALSE)
 for (n in 1:length(names)) {
     print(names[n])
-    dir.create(paste0("./results/mnc/",names[n]))
+    dir.create(paste0("./results/mnc/",names[n]), showWarnings=FALSE)
 
     nm[[n]] = list()
 
@@ -96,10 +96,15 @@ colnames(demo) = c("ID", "Sex", "Age")
 demo = merge(inclusions, demo, by="ID", all=FALSE)
 
 anatVol = mincArray(mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc"))
+mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
+
+# Visualize a few voxels where there is tissue overlap
 
 for (i in 1:length(random_samples)) {
     plots=list()
     dir.create(paste0("./visualization/vox_",random_samples[i]), showWarnings=FALSE)
+
+    Visualize micro and NM
     for (n in 1:length(names)) {
         print(names[n])
 
@@ -144,5 +149,39 @@ for (i in 1:length(random_samples)) {
 
     wrap_plots(plots, ncol=3)
     ggsave(paste0("./visualization/vox_",random_samples[i],"/all_",random_samples[i],".png"), width=24, height=15)
+
+    # Visualize where voxels are located
+    outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
+    outvol[] <- 0
+    vox = c(rep(0, random_samples[i] - 1), 1, rep(0, (nrow(nm[[1]][[1]]) - (random_samples[i]))))
+    outvol[mask > 0.5] <- vox
+    mincWriteVolume(outvol, paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".mnc"), clobber=TRUE)
+    command=paste0("mincmorph -clobber -3D26 -successive DD ./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".mnc ./visualization/vox_",random_samples[i],"/vox_",random_samples[i],"_dil.mnc")
+    system(command)
+
+    vox_mask = mincArray(mincGetVolume(paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".mnc")))
+    slice = which(vox_mask[] == 1, arr.ind = TRUE)[3]
+    png(file=paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".png"), width=3000, height=3000, pointsize = 80)
+    sliceSeries(nrow=1, ncol=1, begin=slice, end=slice, dimension=3) %>%
+        #addtitle("On average") %>%
+        anatomy(anatVol, low=10, high=140) %>%
+        overlay(mincArray(mincGetVolume(paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".mnc"))),
+                low=0, high=1, col="red") %>%
+        draw(layout="row")
+    dev.off()
+    print(paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".png"))
+
+    png(file=paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],"_dil.png"), width=3000, height=3000, pointsize = 80)
+    sliceSeries(nrow=1, ncol=1, begin=slice, end=slice, dimension=3) %>%
+        #addtitle("On average") %>%
+        anatomy(anatVol, low=10, high=140) %>%
+        overlay(mincArray(mincGetVolume(paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],"_dil.mnc"))),
+                low=0, high=1, col="red") %>%
+        draw(layout="row")
+    dev.off()
+    print(paste0("./visualization/vox_",random_samples[i],"/vox_",random_samples[i],"_dil.png"))
+
+    command = paste0("convert -gravity center ./visualization/vox_",random_samples[i],"/vox_",random_samples[i],".png ./visualization/vox_",random_samples[i],"/all_",random_samples[i],".png +append ./visualization/vox_",random_samples[i],"/vox_all_",random_samples[i],".png")
+    system(command)
 }
 
