@@ -66,10 +66,10 @@ print(label.shape)
 # Indices of IDs to remove
 common_ids = set(ids['ID']).intersection(set(demo['ID']), set(ids_micro['C0']), set(ids_label['C0']))
 
-exclude_indices_inc = [i for i, id in enumerate(set(ids['ID'])) if id not in common_ids]
-exclude_indices_demo = [i for i, id in enumerate(set(demo['ID'])) if id not in common_ids]
-exclude_indices_micro = [i for i, id in enumerate(set(ids_micro['C0'])) if id not in common_ids]
-exclude_indices_label = [i for i, id in enumerate(set(ids_label['C0'])) if id not in common_ids]
+exclude_indices_inc = np.where(~ids['ID'].isin(common_ids))[0]
+exclude_indices_demo = np.where(~demo['ID'].isin(common_ids))[0]
+exclude_indices_micro = np.where(~ids_micro['C0'].isin(common_ids))[0]
+exclude_indices_label = np.where(~ids_label['C0'].isin(common_ids))[0]
 
 ids = ids.drop(exclude_indices_inc).reset_index(drop=True)
 demo = demo.drop(exclude_indices_demo).reset_index(drop=True)
@@ -207,8 +207,12 @@ for t in range(2,8):
 
 
 # # Plot
-# fig = (pn.ggplot(vox, pn.aes(x="Age", y="C23045", color="factor(Sex)")) + 
-# pn.geom_point(alpha=0.01) + 
+
+# import plotnine as pn
+
+# # fig = (pn.ggplot(vox, pn.aes(x="Age", y="C23045", color="factor(Sex)")) + 
+# fig = (pn.ggplot() +
+# pn.geom_point(test, pn.aes(x="Age", y="column_184073"), color="blue", alpha=0.01) + 
 # pn.geom_line(demo_pred, pn.aes(x="Age", y="Mean", color="factor(Sex)")) +
 # pn.geom_line(test_pred, pn.aes(x="Age", y=(test_pred['Mean'] + (test_pred['SD'])), color="factor(Sex)"), alpha=0.8) +
 # pn.geom_line(test_pred, pn.aes(x="Age", y=(test_pred['Mean'] - (test_pred['SD'])), color="factor(Sex)"), alpha=0.8) +
