@@ -28,12 +28,13 @@ for (n in 1:length(names)) {
             print(dim(fread(files[i])))
             nm = rbind(nm, fread(files[i]))
         }
-
-        # Delete chunk results
-        file.remove(files)
+        print(dim(nm))
 
         # Write non-chunked nm for micro and tissue type
         fwrite(nm, paste0("./results/nm_",names[n],"_",tissues[t],".tsv"), sep="\t", quote=FALSE, col.names=TRUE, row.names=FALSE)
+
+        # Delete chunk results
+        file.remove(files)
     }
 }
 
