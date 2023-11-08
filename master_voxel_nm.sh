@@ -102,7 +102,7 @@ done
 #endregion
 
 #################################################################################
-############################## Normative models #################################
+################################## Analyses #####################################
 #################################################################################
 
 #region Bayesian Linear Regression with age and sex
@@ -141,6 +141,38 @@ done > joblist_norm_models_BLR
 
 qbatch -c 1 -w 0:30:00 joblist_test
 qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
+
+#endregion
+
+#region Voxel-wises z-score for subjects with dx
+
+cd Analyses/subj_zscores_common_dx
+
+# Make tsv of micro and label for dx only
+
+module load cobralab
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_dx_1_select_rows.R ${micro[i]}
+done > joblist_subj_zscores_common_dx_1_select_rows
+
+qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_1_select_rows
+
+# Z-scores for participants with dx
+
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
+
+for micro in $(seq 0 6)
+do
+    echo python ./subj_zscores_common_dx_2_zscore.py ${micro}
+done > joblist_subj_zscores_common_dx_2_zscore
+
+qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_2_zscore
 
 #endregion
 
