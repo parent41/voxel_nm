@@ -7,8 +7,8 @@ from joblib import Parallel, delayed
 import multiprocessing as mp
 import sys
 
-# num_micro = int(sys.argv[1])
-num_micro = 0
+num_micro = int(sys.argv[1])
+# num_micro = 0
 names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM"]
 name = names[num_micro]
 
