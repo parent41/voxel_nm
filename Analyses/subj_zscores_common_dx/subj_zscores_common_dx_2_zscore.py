@@ -75,9 +75,16 @@ def zscore_nm(i):
 # Run nm for all voxels (in chunk) and all brain tissue types using parallelized processes
 num_cpus = mp.cpu_count()
 
+# results = Parallel(n_jobs=int(num_cpus/2))(delayed(zscore_nm)(i) for i in range(micro.shape[0]))
+# results = pd.DataFrame(results)
+# results.to_csv(f"./results/zscores_{name}.tsv", sep='\t', index=False, na_rep="NA")
+
+# Again for denoised maps
+
+micro = pl.read_csv(f"../../micro_matrices/anlm_dx_ses2_{name}.tsv", has_header=False, separator="\t").to_pandas()
+label = pl.read_csv(f"./results/ses2_Label_whole_brain_dx.tsv", has_header=False, separator="\t").to_pandas()
+
 results = Parallel(n_jobs=int(num_cpus/2))(delayed(zscore_nm)(i) for i in range(micro.shape[0]))
 results = pd.DataFrame(results)
-results.to_csv(f"./results/zscores_{name}.tsv", sep='\t', index=False, na_rep="NA")
-
-
+results.to_csv(f"./results/zscores_anlm_{name}.tsv", sep='\t', index=False, na_rep="NA")
 

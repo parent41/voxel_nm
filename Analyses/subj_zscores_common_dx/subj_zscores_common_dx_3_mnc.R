@@ -2,7 +2,13 @@
 library(data.table)
 library(RMINC)
 
-names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
+# Arg 1: Micro name
+args = commandArgs(trailingOnly=TRUE)
+
+# args = c()
+# args[1] = "FA"
+
+# names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
 
 # Load data
 
@@ -24,12 +30,10 @@ dx <- dx[, colSums(!is.na(dx)) > 0]
 anatVol = mincArray(mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc"))
 mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 
-zscores = list()
-for (n in 1:length(names)) {
-    print(names[n])
-    zscores[[n]] = as.data.frame(fread(paste0("./results/zscores_",names[n],".tsv"), header = TRUE))
-    print(dim(zscores[[n]]))
-}
+# For raw maps and denoised maps
+
+zscores_raw = as.data.frame(fread(paste0("./results/zscores_",args[1],".tsv"), header = TRUE))
+zscores_anlm = as.data.frame(fread(paste0("./results/zscores_anlm_",args[1],".tsv"), header = TRUE))
 
 # Make mnc files for each subject grouped by dx
 
@@ -50,18 +54,28 @@ for (d in 1:ncol(dx)) {
             res_dir = paste0("./results/",colnames(dx)[d], "/", dx_ids[i])
             dir.create(res_dir, showWarnings=FALSE)
 
-            for (n in 1:length(names)) {
-                # Write to mnc
-                vol = as.numeric(zscores[[n]][id_row,])
-                vol[is.na(vol)] <- 0
-                outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
-                outvol[] <- 0
-                outvol[mask > 0.5] <- vol
-                mincWriteVolume(outvol, paste0(res_dir,"/",demo$ID[id_row],"_",names[n],".mnc"), clobber=TRUE, like="../../../UKB/temporary_template/avg.020_2mm.mnc", verbose=FALSE)
+            # Write to mnc (raw)
+            # vol = as.numeric(zscores_raw[id_row,])
+            # vol[is.na(vol)] <- 0
+            # outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
+            # outvol[] <- 0
+            # outvol[mask > 0.5] <- vol
+            # mincWriteVolume(outvol, paste0(res_dir,"/",demo$ID[id_row],"_",args[1],".mnc"), clobber=TRUE, like="../../../UKB/temporary_template/avg.020_2mm.mnc", verbose=FALSE)
 
-                cat(paste0("\n\t\tMicro = ", res_dir,"/",demo$ID[id_row],"_",names[n],".mnc \t"))
-            }
+            # cat(paste0("\n\t\tMicro = ", res_dir,"/",demo$ID[id_row],"_",args[1],".mnc \t"))
+
+            # Write to mnc (anlm)
+            vol = as.numeric(zscores_anlm[id_row,])
+            vol[is.na(vol)] <- 0
+            outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
+            outvol[] <- 0
+            outvol[mask > 0.5] <- vol
+            mincWriteVolume(outvol, paste0(res_dir,"/",demo$ID[id_row],"_anlm_",args[1],".mnc"), clobber=TRUE, like="../../../UKB/temporary_template/avg.020_2mm.mnc", verbose=FALSE)
+
+            cat(paste0("\n\t\tMicro = ", res_dir,"/",demo$ID[id_row],"_anlm_",args[1],".mnc \t"))
         }
     }
 }
+
+
 

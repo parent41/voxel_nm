@@ -36,12 +36,14 @@ mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 # Make mnc and png files for each subject grouped by dx
 
 zscore_png = function(input, output, up_thresh, down_thresh) {
-    input_id = sub(".*/", "", input)
+    input_id = sub(".*/(\\d{7}).*", "\\1", input)
+    print(input_id)
 
     color_scale_div_2 = colorRampPalette(brewer.pal(9,"Blues"))(255)
     color_scale_div_1 = colorRampPalette(brewer.pal(9,"Reds"))(255)
 
     anatVol = mincArray(mincGetVolume(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",input_id,"_ses-2_flair_UKB.mnc")))
+    bisonVol = mincArray(mincGetVolume(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-", input_id,"_ses-2_Label_UKB.mnc")))
     micro_subj = list()
     for (n in 1:length(names)) {
         # print(names[n])
@@ -56,6 +58,13 @@ zscore_png = function(input, output, up_thresh, down_thresh) {
         addtitle(names[1]) %>%
         anatomy(anatVol, low=10, high=200) %>%
         overlay(micro_subj[[1]], low=down_thresh, high=up_thresh,col=color_scale_div_1, rCol=color_scale_div_2, symmetric=TRUE) %>%
+        legend("Z-values") %>%
+        contours(bisonVol, levels=c(1,2,3,4,5,6,7,8,9), col=c("green"), lwd=2) %>%
+        # contours(bisonVol, levels=c(2), col=c("green"), lwd=10) %>%
+    draw()
+    dev.off()
+    print(paste0(output, "_all_zscore_min",down_thresh,"_max",up_thresh,".png"))
+
     sliceSeries(nrow=4, ncol=1, begin=42, end=52, dimension=3) %>%
         addtitle(names[2]) %>%
         anatomy(anatVol, low=10, high=200) %>%
@@ -159,12 +168,20 @@ for (d in 1:ncol(dx)) {
             viz_dir = paste0("./visualization/",colnames(dx)[d], "/", dx_ids[i])
             dir.create(viz_dir, showWarnings=FALSE)
             
-            # Make PNG
+            # Make PNG (raw)
             input = paste0(res_dir, "/", dx_ids[i])
             output = paste0(viz_dir, "/", dx_ids[i])
-            for (t in 1:length(down_thresholds)) {
+            input_anlm = paste0(res_dir, "/", dx_ids[i],"_anlm")
+            output_anlm = paste0(viz_dir, "/", dx_ids[i], "_anlm")
+            # For every threshold
+            # for (t in 1:length(down_thresholds)) {
+            for (t in 1:1) {
+                # Not denoised
                 zscore_png(input, output, up_thresholds[t], down_thresholds[t])
                 cat(paste0("\n\tZ-score PNG = ", output, "_all_zscore_min",down_thresholds[t],"_max",up_thresholds[t],".png"))
+                # Denoised
+                zscore_png(input_anlm, output_anlm, up_thresholds[t], down_thresholds[t])
+                cat(paste0("\n\tZ-score PNG = ", output_anlm, "_all_zscore_min",down_thresholds[t],"_max",up_thresholds[t],".png"))
             }
             raw_png(input, output)
             cat(paste0("\n\tRaw PNG = ", output, "_all_raw.png"))
