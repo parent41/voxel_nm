@@ -101,6 +101,36 @@ done
 
 #endregion
 
+#region Denoised micro maps in UKB space (dx only)
+
+mkdir maps_UKB_space_anlm_dx
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
+
+# Denoise maps
+
+while IFS= read -r id; do
+    for i in ${!micro_long[@]}
+    do
+        echo minc_anlm --short --mt 1 --beta 0.7 --clobber ../WMH_micro_spatial/maps_UKB_space/sub-${id}_ses-2_${micro_long[i]}_UKB.mnc maps_UKB_space_anlm_dx/sub-${id}_ses-2_${micro_long[i]}_UKB_anlm.mnc
+        echo scp ../WMH_micro_spatial/maps_UKB_space/sub-${id}_ses-2_${micro_long[i]}_UKB.mnc maps_UKB_space_anlm_dx
+    done
+done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_micro_maps_dx
+
+qbatch -c 200 joblist_anlm_micro_maps_dx
+
+# Make matrices
+
+for i in ${!micro[@]}
+do
+    echo Rscript ./scripts/micro_matrices_anlm_dx.R ${micro_long[i]} ${micro[i]}
+done > joblist_micro_matrices_anlm_dx
+
+qbatch -c 1 -w 1:00:00 joblist_micro_matrices_anlm_dx
+
+#endregion
+
 #################################################################################
 ################################## Analyses #####################################
 #################################################################################
@@ -144,7 +174,7 @@ qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
 
 #endregion
 
-#region Voxel-wises z-score for subjects with dx
+#region Voxel-wises z-score for subjects with dx in common space
 
 cd Analyses/subj_zscores_common_dx
 
@@ -172,7 +202,18 @@ do
     echo python ./subj_zscores_common_dx_2_zscore.py ${micro}
 done > joblist_subj_zscores_common_dx_2_zscore
 
-qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_2_zscore
+qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_2_zscore
+
+# Make mnc files
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_dx_3_mnc.R ${micro[i]}
+done > joblist_subj_zscores_common_dx_3_mnc
+
+qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_3_mnc
 
 #endregion
 
