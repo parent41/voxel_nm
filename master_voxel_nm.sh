@@ -131,6 +131,76 @@ qbatch -c 1 -w 1:00:00 joblist_micro_matrices_anlm_dx
 
 #endregion
 
+#region Denoised micro maps in UKB space (all subjects)
+
+# Denoise micro maps
+
+for file in ../WMH_micro_spatial/maps_UKB_space/*_dti_FA_UKB.mnc
+do
+    echo ./scripts/denoise_micro.sh $(basename $file _dti_FA_UKB.mnc) ../WMH_micro_spatial/maps_UKB_space ./maps_UKB_space_anlm_all
+done > joblist_anlm_micro_maps_all
+
+head joblist_anlm_micro_maps_all -n 10000 > joblist_anlm_micro_maps_all_10000
+head joblist_anlm_micro_maps_all -n 20000 | tail -n 10000 > joblist_anlm_micro_maps_all_20000
+head joblist_anlm_micro_maps_all -n 30000 | tail -n 10000 > joblist_anlm_micro_maps_all_30000
+head joblist_anlm_micro_maps_all -n 40000 | tail -n 10000 > joblist_anlm_micro_maps_all_40000
+tail joblist_anlm_micro_maps_all -n 1889 > joblist_anlm_micro_maps_all_41889
+
+qbatch -c 500 joblist_anlm_micro_maps_all_10000
+qbatch -c 500 joblist_anlm_micro_maps_all_20000
+qbatch -c 500 joblist_anlm_micro_maps_all_30000
+qbatch -c 500 joblist_anlm_micro_maps_all_40000
+qbatch -c 500 joblist_anlm_micro_maps_all_41889
+
+# Create file lists
+
+micro=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo ${micro[i]}
+    ls ./maps_UKB_space_anlm_all/sub-1*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub1_ses2_${micro[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-2*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub2_ses2_${micro[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-3*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub3_ses2_${micro[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-4*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub4_ses2_${micro[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-5*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub5_ses2_${micro[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-6*ses-2*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/sub6_ses2_${micro[i]}_anlm.txt
+
+    ls ./maps_UKB_space_anlm_all/*ses-3*${micro[i]}*_UKB_anlm.mnc > ./micro_file_lists/ses3_${micro[i]}_anlm.txt
+done
+
+# Make matrices
+
+micro=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
+new_micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub1_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub1_ses2_${new_micro[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub2_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub2_ses2_${new_micro[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub3_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub3_ses2_${new_micro[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub4_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub4_ses2_${new_micro[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub5_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub5_ses2_${new_micro[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub6_ses2_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub6_ses2_${new_micro[i]}_anlm
+
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/ses3_${micro[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc ses3_${new_micro[i]}_anlm
+done > joblist_make_micro_matrices_anlm
+
+qbatch -c 1 -w 2:00:00 joblist_make_micro_matrices_anlm
+
+# Concatenate together for ses2 (and delete chunks)
+for i in ${!new_micro[@]}
+do
+    echo ${new_micro[i]}
+    # cat ./micro_matrices/sub*_ses2_${new_micro[i]}_anlm.tsv > ./micro_matrices/ses2_${new_micro[i]}_anlm.tsv
+    # cat ./micro_matrices/ids_sub*_ses2_${new_micro[i]}_anlm.txt > ./micro_matrices/ids_ses2_${new_micro[i]}_anlm.txt
+    rm ./micro_matrices/sub*_ses2_${new_micro[i]}_anlm.tsv
+    rm ./micro_matrices/ids_sub*_ses2_${new_micro[i]}_anlm.txt
+done
+
+
+#endregion
+
 #################################################################################
 ################################## Analyses #####################################
 #################################################################################
@@ -217,3 +287,61 @@ qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_3_mnc
 
 #endregion
 
+#region Voxel-wises z-score for healthy subjects in common space
+
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for m in ${!micro[@]}
+do
+    for i in $(seq 0 32)
+    do
+        echo python ./subj_zscores_common_hc_1_zscore.py ${m} ${i}
+    done
+done > joblist_subj_zscores_common_hc_1_zscore
+
+qbatch -c 2 joblist_subj_zscores_common_hc_1_zscore
+qbatch -c 2 -w 3:20:00 joblist_subj_zscores_common_hc_1_zscore
+
+#endregion
+
+#region Percentage of abnormal voxels per tissue type
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+# args[1] = "FA"
+# args[2] = "../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv"
+# args[3] = "../subj_zscores_common_dx/results/zscores_anlm_FA.tsv"
+# args[4] = "../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt"
+# args[5] = "./results/perc_abnormal_dx_FA_anlm.tsv"
+
+# first for dx
+for m in ${!micro[@]}
+do
+    echo Rscript ./perc_abnormal_vox.R ${micro[m]} \
+        ../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv \
+        ../subj_zscores_common_dx/results/zscores_anlm_${micro[m]}.tsv \
+        ../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt \
+        ./results/perc_abnormal_dx_${micro[m]}_anlm.tsv
+done > joblist_perc_abnormal_vox
+
+# then for hc
+
+for m in ${!micro[@]}
+do
+    for i in $(seq 0 32)
+    do
+        echo Rscript ./perc_abnormal_vox.R ${micro[m]} \
+                ../subj_zscores_common_hc/tmp/label_c0_FA.tsv \
+                ../subj_zscores_common_hc/results/zscores_c${i}_${micro[m]}_anlm.tsv \
+                ../subj_zscores_common_hc/tmp/ids_label_c${i}_${micro[m]}.txt \
+                ./results/perc_abnormal_hc_c${i}_${micro[m]}_anlm.tsv
+    done >> joblist_perc_abnormal_vox
+done
+
+qbatch -c 1 -w 4:00:00 joblist_test
+
+#endregion
