@@ -33,8 +33,8 @@ colnames(dx) = c("Stroke", "TIA", "Subdural_H", "Subarachnoid_H", "Head_trauma",
 dx <- dx[, colSums(!is.na(dx)) > 0]
 
 anatVol = mincArray(mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc"))
-mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
-mask_path = "../../../UKB/temporary_template/Mask_2mm_dil2.mnc"
+mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm.mnc")
+mask_path = "../../../UKB/temporary_template/Mask_2mm.mnc"
 
 # Source yohan's ggplot for MRI extension
 source("../../yohan_ggplot/plotting_functions.R")

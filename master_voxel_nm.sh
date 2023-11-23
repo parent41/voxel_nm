@@ -105,29 +105,25 @@ done
 
 mkdir maps_UKB_space_anlm_dx
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
-micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
-
 # Denoise maps
 
 while IFS= read -r id; do
-    for i in ${!micro_long[@]}
-    do
-        echo minc_anlm --short --mt 1 --beta 0.7 --clobber ../WMH_micro_spatial/maps_UKB_space/sub-${id}_ses-2_${micro_long[i]}_UKB.mnc maps_UKB_space_anlm_dx/sub-${id}_ses-2_${micro_long[i]}_UKB_anlm.mnc
-        echo scp ../WMH_micro_spatial/maps_UKB_space/sub-${id}_ses-2_${micro_long[i]}_UKB.mnc maps_UKB_space_anlm_dx
-    done
+    echo ./scripts/denoise_micro.sh sub-${id}_ses-2 ../WMH_micro_spatial/maps_UKB_space ./maps_UKB_space_anlm_dx
 done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_micro_maps_dx
 
 qbatch -c 200 joblist_anlm_micro_maps_dx
 
 # Make matrices
 
+micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
 for i in ${!micro[@]}
 do
     echo Rscript ./scripts/micro_matrices_anlm_dx.R ${micro_long[i]} ${micro[i]}
 done > joblist_micro_matrices_anlm_dx
 
-qbatch -c 1 -w 1:00:00 joblist_micro_matrices_anlm_dx
+qbatch -c 1 joblist_micro_matrices_anlm_dx
 
 #endregion
 
@@ -283,11 +279,13 @@ do
     echo Rscript subj_zscores_common_dx_3_mnc.R ${micro[i]}
 done > joblist_subj_zscores_common_dx_3_mnc
 
-qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_3_mnc
+qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_3_mnc
 
 #endregion
 
 #region Voxel-wises z-score for healthy subjects in common space
+
+# Z-scores
 
 module load cobralab
 module load python/3.9.8
@@ -305,6 +303,17 @@ done > joblist_subj_zscores_common_hc_1_zscore
 
 qbatch -c 2 joblist_subj_zscores_common_hc_1_zscore
 qbatch -c 2 -w 3:20:00 joblist_subj_zscores_common_hc_1_zscore
+
+# Make mnc files
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_hc_2_mnc.R ${micro[i]}
+done > joblist_subj_zscores_common_hc_2_mnc
+
+qbatch -c 1 -w 2:30:00 joblist_subj_zscores_common_hc_2_mnc
 
 #endregion
 
@@ -342,6 +351,6 @@ do
     done >> joblist_perc_abnormal_vox
 done
 
-qbatch -c 1 -w 4:00:00 joblist_test
+qbatch -c 1 -w 2:30:00 joblist_test
 
 #endregion
