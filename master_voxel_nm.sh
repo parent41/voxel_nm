@@ -281,6 +281,12 @@ done > joblist_subj_zscores_common_dx_3_mnc
 
 qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_3_mnc
 
+# Visualize
+
+echo Rscript subj_zscores_common_dx_4_viz.R > joblist_subj_zscores_common_dx_4_viz
+
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_4_viz
+
 #endregion
 
 #region Voxel-wises z-score for healthy subjects in common space
@@ -313,7 +319,13 @@ do
     echo Rscript subj_zscores_common_hc_2_mnc.R ${micro[i]}
 done > joblist_subj_zscores_common_hc_2_mnc
 
-qbatch -c 1 -w 2:30:00 joblist_subj_zscores_common_hc_2_mnc
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_2_mnc
+
+# Visualize
+
+echo Rscript ./subj_zscores_common_hc_3_viz.R > joblist_subj_zscores_common_hc_3_viz
+
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_3_viz
 
 #endregion
 
@@ -344,13 +356,15 @@ do
     for i in $(seq 0 32)
     do
         echo Rscript ./perc_abnormal_vox.R ${micro[m]} \
-                ../subj_zscores_common_hc/tmp/label_c0_FA.tsv \
+                ../subj_zscores_common_hc/tmp/label_c${i}_FA.tsv \
                 ../subj_zscores_common_hc/results/zscores_c${i}_${micro[m]}_anlm.tsv \
                 ../subj_zscores_common_hc/tmp/ids_label_c${i}_${micro[m]}.txt \
                 ./results/perc_abnormal_hc_c${i}_${micro[m]}_anlm.tsv
     done >> joblist_perc_abnormal_vox
 done
 
-qbatch -c 1 -w 2:30:00 joblist_test
+qbatch -c 5 -w 2:45:00 joblist_perc_abnormal_vox
+
+
 
 #endregion
