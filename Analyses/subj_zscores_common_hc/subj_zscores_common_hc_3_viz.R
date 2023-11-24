@@ -17,7 +17,7 @@ names_long = c("dti_MD", "NODDI_ISOVF", "dti_FA", "NODDI_ICVF", "NODDI_OD", "T2s
 
 # Load data
 
-inclusions = as.data.frame(fread("./tmp/ids_sampled_micro_c0_FA.txt"))
+inclusions = as.data.frame(fread("./tmp/ids_sampled_label_FA.txt"))
 colnames(inclusions) = "ID"
 ids = inclusions$ID
 
