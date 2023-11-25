@@ -26,6 +26,8 @@ demo = subset(demo, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when
 colnames(demo) = c("ID", "Sex", "Age")
 demo = merge(inclusions, demo, by="ID", all=FALSE)
 
+fwrite(demo, "./results/demo_dx.tsv", col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
+
 dx = as.data.frame(fread("../../../UKB/QC/exclusion_lists/dx_single.csv"))
 colnames(dx) = c("Stroke", "TIA", "Subdural_H", "Subarachnoid_H", "Head_trauma", "Psychiatric", "Infection_nerv", "Abscess", 
                 "Encephalitis", "Meningitis", "Chronic_neurol", "Motor_neuron_disease", "MS", "PD", "Cog_imp", "Epilepsy",
