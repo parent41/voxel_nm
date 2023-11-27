@@ -65,7 +65,7 @@ micro = list()
 for (n in 1:length(names)) {
     print(names[n])
 
-    micro[[n]] = as.data.frame(fread(paste0("./visualization/vox/",names[n],"_vox_to_viz_micro.tsv")))
+    micro[[n]] = as.data.frame(fread(paste0("./visualization/",names[n],"_vox_to_viz_micro.tsv")))
     ids_micro = as.data.frame(fread(paste0("../../micro_matrices/ids_ses2_",names[n],".txt")))
     micro[[n]] = cbind(ids_micro, micro[[n]])
     colnames(micro[[n]])[1] = "ID"
@@ -129,9 +129,14 @@ for (i in 1:length(random_samples)) {
 
         combined_nm_df = do.call(rbind, Map(cbind, nm_df, df_name = names(nm_df)))
 
-        plots[[n]] = ggplot(df, aes(x=Age, y=Value, color=Label, shape=Sex)) +
+        color_scale = c(Ventricules = "#6a009d", CSF = "#0035dd", Cerebellum_GM = "#00a4bb", Cerebellum_WM = "#009b0f",
+                        Brainstem = "#00e100", Subcortical_GM="#ccf900", Cortical_GM="#ffb000", Cerebral_NAWM="#e50000", WMH="#fffefb")
+        color_scale = color_scale[which(tissues_all %in% levels(df$Label) & tissues_all %in% tissues)]
+
+        plots[[n]] = ggplot(df, aes(x=Age, y=Value, colour=Label, shape=Sex)) +
                         geom_point(alpha=0.1, size=1) + 
-                        geom_line(data = combined_nm_df, aes(x=Age, y=avg, linetype=Sex,color=df_name)) + 
+                        geom_line(data = combined_nm_df, aes(x=Age, y=avg, linetype=Sex, colour=df_name)) + 
+                        scale_colour_manual(name="Label", values=color_scale) + 
                         ggtitle(names[n]) +
                         theme_classic() + 
                         theme(text=element_text(size=20), plot.title=element_text(hjust=0.5, size=30))
