@@ -89,8 +89,6 @@ for (f in 2:length(results_fl)) {
 
 results = results[order(results$ID),]
 
-# Combine NAWM and WMH
-
 # Remove dx with prevalence less than 30
 
 dx_prev = as.data.frame(table(demo_dx$dx_1))
@@ -139,34 +137,5 @@ for (i in 1:nrow(demo_dx_prev)) {
 
 results_dx$dx[is.na(results_dx$dx)] <- "HC"
 
-results_dx[,c(2,3,7,8)] = as.data.frame(lapply(results_dx[,c(2,3,7,8)], as.factor))
-
-table(results_dx$dx)
-
-# Violin plots: one plot by micro and threshold 
-
-for (i in 1:length(levels(results_dx$threshold))) {
-  print(levels(results_dx$threshold)[i])
-
-  plots = list()
-  for (n in 1:length(names)) {
-    df_tmp = results_dx %>% filter(threshold == levels(results_dx$threshold)[i] & micro == names[n] & label_value != "9")
-    dx_prev_tmp = as.data.frame(table(df_tmp$dx) / nrow(df_tmp %>% filter(ID == df_tmp$ID[1])))
-    dx_prev_tmp = dx_prev_tmp[order(-dx_prev_tmp$Freq),]
-    legend_labels = paste0(as.character(dx_prev_tmp$Var1), " (n=",dx_prev_tmp$Freq, ")")
-
-    plots[[n]] = ggplot(results_dx %>% filter(threshold == levels(results_dx$threshold)[i] & micro == names[n] & label_value != "9"),
-          aes(x=label_value, y=perc_vox_above_thresh, fill=factor(dx, levels=c("HC", dx_prev_order)))) + 
-          geom_boxplot(outlier.shape = NA) + 
-          scale_fill_discrete(name="Diagnosis", labels=legend_labels) + 
-          scale_x_discrete(labels = tissue_all[seq(3,8)], name="") + 
-          scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results_dx$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
-          ggtitle(paste0(names[n])) +
-          theme(text = element_text(size=20), plot.title = element_text(hjust = 0.5))
-    ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results_dx$threshold)[i],"_",names[n],".png"), width=20, height=5)
-  }
-
-  wrap_plots(plots, ncol=1)
-  ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results_dx$threshold)[i],"_allmicro.png"), width=20, height=(5*length(names)))
-}
+fwrite(results_dx, "./results/final_results_dx.tsv", col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
 
