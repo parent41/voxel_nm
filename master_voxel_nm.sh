@@ -346,7 +346,7 @@ do
         ../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv \
         ../subj_zscores_common_dx/results/zscores_anlm_${micro[m]}.tsv \
         ../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt \
-        ./results/perc_abnormal_dx_${micro[m]}_anlm.tsv
+        ./results/raw/perc_abnormal_dx_${micro[m]}_anlm.tsv
 done > joblist_perc_abnormal_vox
 
 # then for hc
