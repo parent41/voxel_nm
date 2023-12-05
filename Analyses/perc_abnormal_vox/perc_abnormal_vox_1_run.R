@@ -11,7 +11,7 @@ args = commandArgs(trailingOnly=TRUE)
 # args[2] = "../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv"
 # args[3] = "../subj_zscores_common_dx/results/zscores_anlm_FA.tsv"
 # args[4] = "../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt"
-# args[5] = "./results/perc_abnormal_dx_FA_anlm.tsv"
+# args[5] = "./results/raw/perc_abnormal_dx_FA_anlm.tsv"
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')

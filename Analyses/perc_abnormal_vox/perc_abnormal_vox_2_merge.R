@@ -73,7 +73,7 @@ demo_all[,c(2,4,5)] = as.data.frame(lapply(demo_all[,c(2,4,5)], as.factor))
 
 # Load perc abnormal vox results
 
-results_fl = list.files("./results", pattern="*", full.names = TRUE)
+results_fl = list.files("./results/raw", pattern="*", full.names = TRUE)
 
 results = as.data.frame(fread(results_fl[1]))
 micro_res = sub(".*_(.*)_anlm.tsv", "\\1", results_fl[1])
@@ -88,6 +88,37 @@ for (f in 2:length(results_fl)) {
 }
 
 results = results[order(results$ID),]
+
+# Add WMH+NAWM total abnormality
+
+results <- as.data.frame(results %>%
+  group_by(ID) %>%
+  group_modify(
+    ~{
+      # Extract the subset for label_value 8 and 9 within each ID
+      subset_8_9 <- .x %>%
+        filter(label_value %in% c(8, 9)) %>%
+        select(-label_value) %>%
+        mutate(label_value = 10) %>%
+        group_by(threshold, micro) %>%
+        summarize(
+          # ID = unique(ID),
+          count_vox_label = sum(count_vox_label),
+          count_vox_above_thresh = sum(count_vox_above_thresh),
+          perc_vox_above_thresh = NA
+        )
+      
+      # Combine the original dataset with the subset_8_9 within each ID
+      bind_rows(
+        .x,
+        subset_8_9
+      ) %>%
+        arrange(threshold, micro, label_value)
+    }
+  ))
+
+results$label_value[is.na(results$label_value)] <- 10
+results$perc_vox_above_thresh[results$label_value == 10] = results$count_vox_above_thresh[results$label_value == 10] / results$count_vox_label[results$label_value == 10]
 
 # Remove dx with prevalence less than 30
 
