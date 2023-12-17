@@ -368,3 +368,15 @@ qbatch -c 5 -w 2:45:00 joblist_perc_abnormal_vox
 
 
 #endregion
+
+#region Z-score averages by dx
+
+for i in $(seq 1 21)
+do
+    echo Rscript dx_average.R ${i}
+done > joblist_dx_average
+
+qbatch -c 1 -w 2:00:00 joblist_dx_average
+
+
+#endregion
