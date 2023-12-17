@@ -14,6 +14,7 @@ library(ggradar)
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
+tissue_abn = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
 
 names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
 
@@ -116,11 +117,23 @@ df_radar_pval = function(df, name) {
   color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
   n_dx = length(unique(results_dx[which(results_dx$dx == as.character(unique(df$dx))),1]))
 
-  
+  df_wide = df[,-which(colnames(df) %in% "dx")]
+  df_wide = spread(df_wide, key=label_value, value=pval)
+  colnames(df_wide) = c("micro", tissue_abn)
+  df_wide = df_wide[,-which(colnames(df_wide) %in% "WMH")]
+  row.names(df_wide) = df_wide$micro
+  df_wide = df_wide[,-which(colnames(df_wide) %in% "micro")]
+  df_wide = rbind(rep(1, ncol(df_wide)), rep(0, ncol(df_wide)), rep(0.5, ncol(df_wide)), df_wide)
 
   png(file=name, width=10, height=10, pointsize = 20, units = "in",res=300)
   par(xpd=TRUE)
-  plot = radarchart(df, )
+  plot = radarchart(df_wide, axistype=1, maxmin=TRUE, seg=length(seq(0,1,0.05))-1,
+                    pcol=c("black",color_scale),
+                    pty=32, plwd=2, plty=c(0,rep(1, length(names))),
+                    cglcol="grey", cglty=1, axislabcol="grey", caxislabels = c("0", rep("", length(seq(0,1,0.05))-3),"1"), cglwd=0.8,
+                    vlcex = 1, palcex=0.8)
+  dev.off()
+
   graphics::legend(x="bottom", y=NULL, legend=paste0("Cluster ",seq(1,4)), horiz=TRUE,
                     y.intersp = -0.5, text.width = 0.5,
                     bty="n", pch=20, col=color_scale_clust, text.col="black", cex=2, pt.cex=3)
@@ -167,53 +180,3 @@ for (i in 1:length(levels(results_dx$threshold))) {
   wrap_plots(plots, ncol=1)
   ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results_dx$threshold)[i],"_allmicro.png"), width=20, height=(5*length(names)))
 }
-
-# Radar plots
-
-
-# # Radar plot
-# library(fmsb)
-# library(ggradar)
-
-# color_scale_clust = color_scale[seq(1,clust_number)]
-
-# micro_means_cluster$cluster = as.factor(micro_means_cluster$cluster)
-# micro_means_cluster$micro = as.factor(micro_means_cluster$micro)
-
-# # By micro
-# micro_means_cluster_wide = pivot_wider(micro_means_cluster, names_from="micro", values_from="mean")[,-1]
-# micro_means_cluster_wide = rbind(rep(7,length(maps)), rep(-7, length(maps)), rep(0, length(maps)),micro_means_cluster_wide)
-
-# png(file=paste0("./visualization/k",clust_number,"/radar_chart_means.png"),
-#     width=10, height=10, pointsize = 20, units = "in",res=300)
-# par(xpd=TRUE)
-# radarchart(micro_means_cluster_wide, axistype=1, maxmin=TRUE, seg=length(seq(-7,7,1))-1,
-#            pcol=c("black",color_scale_clust), pfcol=c(scales::alpha("black", 0.15),scales::alpha(color_scale_clust, 0)), 
-#            pty=32, plwd=2, plty=c(0,rep(1, length(maps))), 
-#            cglcol="grey", cglty=1, axislabcol="grey", caxislabels = c("-7 SD","","","","","","",0,"","","","","","","+7 SD"), cglwd=0.8,
-#            vlcex = 2, palcex=0.8)
-# graphics::legend(x="bottom", y=NULL, legend=paste0("Cluster ",seq(1,4)), horiz=TRUE,
-#                  y.intersp = -0.5, text.width = 0.5,
-#                  bty="n", pch=20, col=color_scale_clust, text.col="black", cex=2, pt.cex=3)
-# dev.off()
-
-# # By cluster
-# micro_means_cluster_wide = pivot_wider(micro_means_cluster, names_from="cluster", values_from="mean")[,-1]
-# row.names(micro_means_cluster_wide) = maps
-# micro_means_cluster_wide = rbind(rep(7,clust_number), rep(-7, clust_number), rep(0, clust_number),micro_means_cluster_wide)
-
-# png(file=paste0("./visualization/k",clust_number,"/radar_chart_means_by_cluster.png"),
-#     width=10, height=10, pointsize = 20, units = "in",res=300)
-# par(xpd=TRUE)
-# radarchart(micro_means_cluster_wide, axistype=1, maxmin=TRUE, seg=length(seq(-7,7,1))-1,
-#            pcol=c("black",color_scale), pfcol=c(scales::alpha("black", 0.15),scales::alpha(color_scale_clust, 0)), 
-#            pty=32, plwd=2, plty=c(0,rep(1, clust_number)), 
-#            cglcol="grey", cglty=1, axislabcol="grey", caxislabels = c("-7 SD","","","","","","",0,"","","","","","","+7 SD"), cglwd=0.8,
-#            vlcex = 2, palcex=0.8)
-# graphics::legend(x="bottom", y=NULL, legend=maps, horiz=TRUE,
-#                  y.intersp = -1.5, text.width = 0.5,
-#                  bty="n", pch=20, col=color_scale_clust, text.col="black", cex=2, pt.cex=3)
-# dev.off()
-
-
-
