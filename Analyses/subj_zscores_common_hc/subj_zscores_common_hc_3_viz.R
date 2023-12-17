@@ -375,12 +375,14 @@ foreach(i=1:length(ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'sc
     cat(paste0("\n\tID = ", ids[i], "\t"))
 
     demo_id = demo[i,]
+    vis_dir=paste0("./visualization/",demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i])
+    dir.create(vis_dir, showWarnings=FALSE)
 
     # Make PNG
     input = paste0("./results/mnc/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_zscore")
-    output = paste0("./visualization/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_zscore")
+    output = paste0(vis_dir,"/",demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore")
     input_anlm = paste0("./results/mnc/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_zscore_anlm")
-    output_anlm = paste0("./visualization/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_zscore_anlm")
+    output_anlm = paste0(vis_dir,"/",demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm")
     # For every threshold
     # for (t in 1:length(down_thresholds)) {
     for (t in 1:length(up_thresholds)) {
@@ -390,9 +392,9 @@ foreach(i=1:length(ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'sc
         zscore_png(input_anlm, output_anlm, up_thresholds[t])
     }
     input = paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",ids[i],"_ses-2")
-    output = paste0("./visualization/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_raw")
+    output = paste0(vis_dir,"/",demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_raw")
     input_anlm = paste0("../../maps_UKB_space_anlm_all/sub-",ids[i],"_ses-2")
-    output_anlm = paste0("./visualization/",ids[i],"_",demo_id$Sex,"_",demo_id$Age, "_raw_anlm")
+    output_anlm = paste0(vis_dir,"/",demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_raw_anlm")
 
     raw_png(input, output, "")
     raw_png(input_anlm, output_anlm, "_anlm")
