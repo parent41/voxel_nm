@@ -287,6 +287,12 @@ echo Rscript subj_zscores_common_dx_4_viz.R > joblist_subj_zscores_common_dx_4_v
 
 qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_4_viz
 
+# Add histograms
+
+echo Rscript ./subj_zscores_common_dx_5_viz_hist.R > joblist_subj_zscores_common_dx_5_viz_hist
+
+qbatch -c 1 -w 23:00:00 joblist_subj_zscores_common_dx_5_viz_hist
+
 #endregion
 
 #region Voxel-wises z-score for healthy subjects in common space
@@ -326,6 +332,12 @@ qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_2_mnc
 echo Rscript ./subj_zscores_common_hc_3_viz.R > joblist_subj_zscores_common_hc_3_viz
 
 qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_3_viz
+
+# Add histograms
+
+echo Rscript ./subj_zscores_common_hc_4_viz_hist.R > joblist_subj_zscores_common_hc_4_viz_hist
+
+qbatch -c 1 -w 23:00:00 joblist_subj_zscores_common_hc_4_viz_hist
 
 #endregion
 
