@@ -7,13 +7,6 @@ library(ggplot2)
 library(scales)
 library(tidyverse)
 
-# Arg 1: Micro name
-# args = commandArgs(trailingOnly=TRUE)
-
-# args = c()
-# args[1] = "FA"
-
-names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
 names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
 
 # Load data
@@ -83,13 +76,15 @@ for (i in 1:length(ids)) {
         geom_hline(yintercept = 0) + 
         scale_fill_manual(name="", values=color_scale) +
         scale_x_discrete(labels = tissue, name="") +
-        scale_y_continuous(limits = c(-3, 3), name=paste0("Z-scores"), breaks = seq(-3,3)) +
+        scale_y_continuous(limits = c(-2, 2), name=paste0("Z-scores"), breaks = seq(-2,3)) +
         theme_classic() + 
         theme(text=element_text(size=20), axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))
     ggsave(paste0(vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_hist.png"), width=2500, height=1500, dpi=300, units = "px")
+    print(paste0(vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_hist.png"))
 
     command = paste0("convert -gravity East ",vis_dir,"/*_zscore_anlm_max3.png ",vis_dir,"/*_zscore_anlm_hist.png -append ",vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png")
     system(command)
+    print(paste0(vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png"))
 }
 
 
