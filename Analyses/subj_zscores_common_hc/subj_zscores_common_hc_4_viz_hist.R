@@ -85,7 +85,6 @@ for (i in 1:length(ids)) {
     command = paste0("convert -gravity East ",vis_dir,"/*_zscore_anlm_max3.png ",vis_dir,"/*_zscore_anlm_hist.png -append ",vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png")
     system(command)
     print(paste0(vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png"))
-    }
 }
 
 

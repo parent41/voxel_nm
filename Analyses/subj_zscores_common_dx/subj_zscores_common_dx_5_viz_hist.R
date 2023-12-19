@@ -34,7 +34,8 @@ zscores_anlm_all = list()
 
 for (n in 1:length(names)) {
     print(names[n])
-    zscores_anlm_all[[n]] = as.data.frame(fread(paste0("./results/zscores_anlm_",names[n],".tsv")))
+    zscores_anlm_all[[n]] = as.data.frame(fread(paste0("./results/zscores_anlm_",names[n],".tsv"), header=TRUE))
+
 }
 
 
@@ -54,7 +55,7 @@ for (d in 1:ncol(dx)) {
     dir.create(paste0("./visualization/",colnames(dx)[d]), showWarnings=FALSE)
 
     for (i in 1:length(dx_ids)) {
-        print(paste0("ID = ", dx_ids[i], "\t"))
+        print(paste0("ID = ", dx_ids[i]))
         id_row = which(inclusions$ID == dx_ids[i])
 
         # Check if ID is in inclusions
