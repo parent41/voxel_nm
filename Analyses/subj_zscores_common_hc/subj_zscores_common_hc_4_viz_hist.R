@@ -61,7 +61,7 @@ for (i in 1:length(ids)) {
     df = list()
     for (n in 1:length(names)) {
         print(names[n])
-        df[[n]] = as.data.frame(cbind(as.numeric(zscores_anlm_all[[n]][which(demo$ID == ids[i]),]), as.numeric(label[which(demo$ID == ids[i]),])))
+        df[[n]] = as.data.frame(cbind(as.numeric(zscores_anlm_all[[n]][which(ids_micro_all[[n]]$V1 == ids[i]),]), as.numeric(label[which(ids_micro_all[[n]]$V1 == ids[i]),])))
         colnames(df[[n]]) = c("Values", "Label")
         df[[n]]$Label = as.factor(df[[n]]$Label)
         df[[n]] = df[[n]][which(df[[n]]$Label %in% c(3,4,5,6,7,8,9)),]
@@ -85,6 +85,7 @@ for (i in 1:length(ids)) {
     command = paste0("convert -gravity East ",vis_dir,"/*_zscore_anlm_max3.png ",vis_dir,"/*_zscore_anlm_hist.png -append ",vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png")
     system(command)
     print(paste0(vis_dir, "/", demo_id$Age,ifelse(demo_id$Sex == "Male", "M", "F"),"_",ids[i], "_zscore_anlm_all.png"))
+    }
 }
 
 
