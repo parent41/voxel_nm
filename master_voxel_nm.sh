@@ -101,33 +101,54 @@ done
 
 #endregion
 
-#region Denoised micro maps in UKB space (dx only)
+#region Tissue-specific matrices of DBM maps
 
-mkdir maps_UKB_space_anlm_dx
+# Create file lists
 
-# Denoise maps
+metrics=('jacobians_rel' 'jacobians_abs')
 
-while IFS= read -r id; do
-    echo ./scripts/denoise_micro.sh sub-${id}_ses-2 ../WMH_micro_spatial/maps_UKB_space ./maps_UKB_space_anlm_dx
-done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_micro_maps_dx
+for i in ${!metrics[@]}
+do
+    echo ${metrics[i]}
+    ls ../UKB/DBM_2mm/sub-1*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub1_ses2_${metrics[i]}.txt
+    ls ../UKB/DBM_2mm/sub-2*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub2_ses2_${metrics[i]}.txt
+    ls ../UKB/DBM_2mm/sub-3*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub3_ses2_${metrics[i]}.txt
+    ls ../UKB/DBM_2mm/sub-4*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub4_ses2_${metrics[i]}.txt
+    ls ../UKB/DBM_2mm/sub-5*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub5_ses2_${metrics[i]}.txt
+    ls ../UKB/DBM_2mm/sub-6*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub6_ses2_${metrics[i]}.txt
 
-qbatch -c 200 joblist_anlm_micro_maps_dx
+    ls ../UKB/DBM_2mm/*ses-3*${metrics[i]}*.mnc > ./micro_file_lists/ses3_${metrics[i]}.txt
+done
 
 # Make matrices
 
-micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
-
-for i in ${!micro[@]}
+for i in ${!metrics[@]}
 do
-    echo Rscript ./scripts/micro_matrices_anlm_dx.R ${micro_long[i]} ${micro[i]}
-done > joblist_micro_matrices_anlm_dx
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub1_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub1_ses2_${metrics[i]}
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub2_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub2_ses2_${metrics[i]}
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub3_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub3_ses2_${metrics[i]}
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub4_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub4_ses2_${metrics[i]}
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub5_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub5_ses2_${metrics[i]}
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub6_ses2_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub6_ses2_${metrics[i]}
 
-qbatch -c 1 joblist_micro_matrices_anlm_dx
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/ses3_${metrics[i]}.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc ses3_${metrics[i]}
+done > joblist_make_dbm_matrices
+
+qbatch -c 1 -w 00:45:00 joblist_make_dbm_matrices
+
+# Concatenate together for ses2 (and delete chunks)
+for i in ${!metrics[@]}
+do
+    echo ${metrics[i]}
+    # cat ./micro_matrices/sub*_ses2_${metrics[i]}.tsv > ./micro_matrices/ses2_${metrics[i]}.tsv
+    # cat ./micro_matrices/ids_sub*_ses2_${metrics[i]}.txt > ./micro_matrices/ids_ses2_${metrics[i]}.txt
+    rm ./micro_matrices/sub*_ses2_${metrics[i]}.tsv
+    rm ./micro_matrices/ids_sub*_ses2_${metrics[i]}.txt
+done
 
 #endregion
 
-#region Denoised micro maps in UKB space (all subjects)
+#region Denoised microstructure in UKB space
 
 # Denoise micro maps
 
@@ -193,6 +214,74 @@ do
     rm ./micro_matrices/sub*_ses2_${new_micro[i]}_anlm.tsv
     rm ./micro_matrices/ids_sub*_ses2_${new_micro[i]}_anlm.txt
 done
+
+
+#endregion
+
+#region Denoised DBM in UKB space
+
+# Denoise DBM maps
+
+for file in ../UKB/DBM_2mm/*_jacobians_abs_2mm.mnc
+do
+    echo ./scripts/denoise_dbm.sh $(basename $file _jacobians_abs_2mm.mnc) ../UKB/DBM_2mm ./maps_UKB_space_anlm_all
+done > joblist_anlm_dbm_maps_all
+
+head joblist_anlm_dbm_maps_all -n 10000 > joblist_anlm_dbm_maps_all_10000
+head joblist_anlm_dbm_maps_all -n 20000 | tail -n 10000 > joblist_anlm_dbm_maps_all_20000
+head joblist_anlm_dbm_maps_all -n 30000 | tail -n 10000 > joblist_anlm_dbm_maps_all_30000
+head joblist_anlm_dbm_maps_all -n 40000 | tail -n 10000 > joblist_anlm_dbm_maps_all_40000
+tail joblist_anlm_dbm_maps_all -n 1883 > joblist_anlm_dbm_maps_all_41883
+
+qbatch -c 500 joblist_anlm_dbm_maps_all_10000
+qbatch -c 500 joblist_anlm_dbm_maps_all_20000
+qbatch -c 500 joblist_anlm_dbm_maps_all_30000
+qbatch -c 500 joblist_anlm_dbm_maps_all_40000
+qbatch -c 500 joblist_anlm_dbm_maps_all_41883
+
+# Create file lists
+
+metrics=('jacobians_rel' 'jacobians_abs')
+
+for i in ${!metrics[@]}
+do
+    echo ${metrics[i]}
+    ls ./maps_UKB_space_anlm_all/sub-1*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub1_ses2_${metrics[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-2*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub2_ses2_${metrics[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-3*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub3_ses2_${metrics[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-4*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub4_ses2_${metrics[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-5*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub5_ses2_${metrics[i]}_anlm.txt
+    ls ./maps_UKB_space_anlm_all/sub-6*ses-2*${metrics[i]}*.mnc > ./micro_file_lists/sub6_ses2_${metrics[i]}_anlm.txt
+
+    ls ./maps_UKB_space_anlm_all/*ses-3*${metrics[i]}*.mnc > ./micro_file_lists/ses3_${metrics[i]}_anlm.txt
+done
+
+# Make matrices
+
+for i in ${!metrics[@]}
+do
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub1_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub1_ses2_${metrics[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub2_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub2_ses2_${metrics[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub3_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub3_ses2_${metrics[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub4_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub4_ses2_${metrics[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub5_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub5_ses2_${metrics[i]}_anlm
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/sub6_ses2_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc sub6_ses2_${metrics[i]}_anlm
+
+    echo Rscript ./scripts/micro_matrices.R ./micro_file_lists/ses3_${metrics[i]}_anlm.txt ../UKB/temporary_template/Mask_2mm_dil2.mnc ses3_${metrics[i]}_anlm
+done > joblist_make_dbm_matrices_anlm
+
+qbatch -c 1 -w 00:45:00 joblist_make_dbm_matrices_anlm
+
+# Concatenate together for ses2 (and delete chunks)
+for i in ${!metrics[@]}
+do
+    echo ${metrics[i]}
+    # cat ./micro_matrices/sub*_ses2_${metrics[i]}_anlm.tsv > ./micro_matrices/ses2_${metrics[i]}_anlm.tsv
+    # cat ./micro_matrices/ids_sub*_ses2_${metrics[i]}_anlm.txt > ./micro_matrices/ids_ses2_${metrics[i]}_anlm.txt
+    rm ./micro_matrices/sub*_ses2_${metrics[i]}_anlm.tsv
+    rm ./micro_matrices/ids_sub*_ses2_${metrics[i]}_anlm.txt
+done
+
 
 
 #endregion
@@ -291,7 +380,7 @@ qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_4_viz
 
 echo Rscript ./subj_zscores_common_dx_5_viz_hist.R > joblist_subj_zscores_common_dx_5_viz_hist
 
-qbatch -c 1 -w 12:00:00 joblist_subj_zscores_common_dx_5_viz_hist
+qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_dx_5_viz_hist
 
 #endregion
 
@@ -337,7 +426,7 @@ qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_3_viz
 
 echo Rscript ./subj_zscores_common_hc_4_viz_hist.R > joblist_subj_zscores_common_hc_4_viz_hist
 
-qbatch -c 1 -w 12:00:00 joblist_subj_zscores_common_hc_4_viz_hist
+qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_hc_4_viz_hist
 
 #endregion
 
@@ -392,3 +481,37 @@ qbatch -c 1 -w 2:00:00 joblist_dx_average
 
 
 #endregion
+
+#################################################################################
+#################################### Old ########################################
+#################################################################################
+
+#region Denoised micro maps in UKB space (dx only)
+
+mkdir maps_UKB_space_anlm_dx
+
+# Denoise maps
+
+while IFS= read -r id; do
+    echo ./scripts/denoise_micro.sh sub-${id}_ses-2 ../WMH_micro_spatial/maps_UKB_space ./maps_UKB_space_anlm_dx
+done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_micro_maps_dx
+
+qbatch -c 200 joblist_anlm_micro_maps_dx
+
+# Make matrices
+
+micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript ./scripts/micro_matrices_anlm_dx.R ${micro_long[i]} ${micro[i]}
+done > joblist_micro_matrices_anlm_dx
+
+qbatch -c 1 joblist_micro_matrices_anlm_dx
+
+#endregion
+
+
+
+
