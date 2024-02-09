@@ -55,16 +55,16 @@ for (d in 1:ncol(dx)) {
             dir.create(res_dir, showWarnings=FALSE)
 
             # Write to mnc (raw)
-            # vol = as.numeric(zscores_raw[id_row,])
-            # vol[is.na(vol)] <- 0
-            # outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
-            # outvol[] <- 0
-            # outvol[mask > 0.5] <- vol
-            # mincWriteVolume(outvol, paste0(res_dir,"/",demo$ID[id_row],"_",args[1],".mnc"), clobber=TRUE, like="../../../UKB/temporary_template/avg.020_2mm.mnc", verbose=FALSE)
+            vol = as.numeric(zscores_raw[id_row,])
+            vol[is.na(vol)] <- 0
+            outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")
+            outvol[] <- 0
+            outvol[mask > 0.5] <- vol
+            mincWriteVolume(outvol, paste0(res_dir,"/",demo$ID[id_row],"_",args[1],".mnc"), clobber=TRUE, like="../../../UKB/temporary_template/avg.020_2mm.mnc", verbose=FALSE)
 
-            # cat(paste0("\n\t\tMicro = ", res_dir,"/",demo$ID[id_row],"_",args[1],".mnc \t"))
+            cat(paste0("\n\t\tMicro = ", res_dir,"/",demo$ID[id_row],"_",args[1],".mnc \t"))
 
-            # Write to mnc (anlm)
+            Write to mnc (anlm)
             vol = as.numeric(zscores_anlm[id_row,])
             vol[is.na(vol)] <- 0
             outvol <- mincGetVolume("../../../UKB/temporary_template/avg.020_2mm.mnc")

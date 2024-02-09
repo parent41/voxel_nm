@@ -27,10 +27,10 @@ random.seed(123)
 
 num_micro = int(sys.argv[1])
 num_chunk = int(sys.argv[2])
-# num_micro = 0
-# num_chunk = 0
+# num_micro = 7
+# num_chunk = 7
 
-names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM"]
+names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel"]
 tissues = ['Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH']
 name = names[num_micro]
 

@@ -2,8 +2,10 @@
 import pandas as pd
 import polars as pl
 
-names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM"]
+names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel"]
 # names = ["FA"]
+# names = ["jacobians_abs", "jacobians_rel"]
+
 samples = pd.read_csv("./visualization/random_samples.txt", header=None)
 samples = samples-1
 

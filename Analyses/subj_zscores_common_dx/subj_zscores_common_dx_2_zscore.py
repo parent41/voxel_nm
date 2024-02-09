@@ -8,8 +8,8 @@ import multiprocessing as mp
 import sys
 
 num_micro = int(sys.argv[1])
-# num_micro = 0
-names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM"]
+# num_micro = 7
+names = ["FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel"]
 name = names[num_micro]
 
 tissue_all=['Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH']
@@ -75,9 +75,9 @@ def zscore_nm(i):
 # Run nm for all voxels (in chunk) and all brain tissue types using parallelized processes
 num_cpus = mp.cpu_count()
 
-# results = Parallel(n_jobs=int(num_cpus/2))(delayed(zscore_nm)(i) for i in range(micro.shape[0]))
-# results = pd.DataFrame(results)
-# results.to_csv(f"./results/zscores_{name}.tsv", sep='\t', index=False, na_rep="NA")
+results = Parallel(n_jobs=int(num_cpus/2))(delayed(zscore_nm)(i) for i in range(micro.shape[0]))
+results = pd.DataFrame(results)
+results.to_csv(f"./results/zscores_{name}.tsv", sep='\t', index=False, na_rep="NA")
 
 # Again for denoised maps
 

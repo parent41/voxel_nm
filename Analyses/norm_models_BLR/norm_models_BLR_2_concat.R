@@ -2,8 +2,10 @@
 library(data.table)
 library(RMINC)
 
-names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
+names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel")
 # names = c("FA")
+# names = c("jacobians_abs", "jacobians_rel")
+
 
 tissues = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 

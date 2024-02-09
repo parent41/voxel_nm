@@ -13,8 +13,9 @@ library(ggnewscale)
 library(scales)
 library(stringr)
 
-names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
-names_long = c("dti_MD", "NODDI_ISOVF", "dti_FA", "NODDI_ICVF", "NODDI_OD", "T2star", "QSM")
+names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel")
+names_long = c("dti_MD_UKB", "NODDI_ISOVF_UKB", "dti_FA_UKB", "NODDI_ICVF_UKB", "NODDI_OD_UKB", "T2star_UKB", "QSM_UKB", "jacobians_abs_2mm", "jacobians_rel_2mm")
+names_plot = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "J(abs)", "J(rel)")
 
 # Load data
 
@@ -118,6 +119,7 @@ zscore_png = function(input, output, up_thresh) {
     }
 
     micro_final$Micro = factor(micro_final$Micro, levels=names)
+    levels(micro_final$Micro) = names_plot
 
     # Make invidiual plots by image types
 
@@ -187,21 +189,22 @@ zscore_png = function(input, output, up_thresh) {
 
     # Combine image types with patchwork
     plt_layout <- "
-    ABCCCCCCC
-    ABCCCCCCC
+    ABCCCCCCCCC
+    ABCCCCCCCCC
     "
     
     final_plot <- flair + bison + zscores + plot_layout(design=plt_layout)
 
-    png(paste0(output, "_zscore_max",up_thresh,".png"), width=2500, height=1500, res=300)
+    png(paste0(output, "_zscore_max",up_thresh,".png"), width=3000, height=1500, res=300)
     print(final_plot)
     dev.off()
+    print(paste0(output, "_zscore_max",up_thresh,".png"))
 }
 
 raw_png = function(input, output, anlm) {
 
-    raw_up_thresh = c(0.003, 0.5, 0.85, 0.85, 1, 75, 150)
-    raw_down_thresh = c(0, 0, 0, 0, 0, 0, -100)
+    raw_up_thresh = c(0.003, 0.5, 0.85, 0.85, 1, 75, 150, 1, 1)
+    raw_down_thresh = c(0, 0, 0, 0, 0, 0, -100, -1, -1)
 
     input_id = str_extract(input, "(?<=sub-)\\d+")
     # print(input_id)
@@ -251,7 +254,7 @@ raw_png = function(input, output, anlm) {
         contour_final = rbind(contour_final, contour$contours_df)
 
         # micro = prepare_masked_anatomy(list.files(input_dir, pattern = paste0("sub-", input_id, "_ses-2_",names_long[1],"*"), full.names = TRUE), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
-        micro = prepare_masked_anatomy(paste0(input, "_",names_long[1],"_UKB",anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+        micro = prepare_masked_anatomy(paste0(input, "_",names_long[1],anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
         ifelse(slices_axes[a] == "x", micro$anatomy_df$x_toplot <- micro$anatomy_df$y, ifelse(slices_axes[a] == "y", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, ifelse(slices_axes[a] == "z", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, NA)))
         ifelse(slices_axes[a] == "x", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "y", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "z", micro$anatomy_df$y_toplot <- micro$anatomy_df$y, NA)))
         micro$anatomy_df$slice_index = micro$anatomy_df$slice_index + n_slices
@@ -259,7 +262,7 @@ raw_png = function(input, output, anlm) {
 
         micro$anatomy_df$Micro = names[1]
         for (n in 2:length(names)) {
-            micro_tmp = prepare_masked_anatomy(paste0(input, "_",names_long[n],"_UKB",anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+            micro_tmp = prepare_masked_anatomy(paste0(input, "_",names_long[n],anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
             ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$y, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, NA)))
             ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$y, NA)))
             micro_tmp$anatomy_df$slice_index = micro_tmp$anatomy_df$slice_index + n_slices
@@ -289,6 +292,7 @@ raw_png = function(input, output, anlm) {
     }
 
     micro_final$Micro = factor(micro_final$Micro, levels=names)
+    levels(micro_final$Micro) = names_plot
 
     # Make invidiual plots by image types
 
@@ -358,16 +362,16 @@ raw_png = function(input, output, anlm) {
 
     # Combine image types with patchwork
     plt_layout <- "
-    ABCCCCCCC
-    ABCCCCCCC
+    ABCCCCCCCCC
+    ABCCCCCCCCC
     "
     
     final_plot <- flair + bison + micros + plot_layout(design=plt_layout)
 
-    png(paste0(output, "_raw.png"), width=2500, height=1500, res=300)
-    # png(paste0("test_raw.png"), width=2500, height=1500, res=300)
+    png(paste0(output, "_raw.png"), width=3000, height=1500, res=300)
     print(final_plot)
     dev.off()
+    print(paste0(output, "_raw.png"))
 }
 
 # Run
@@ -410,12 +414,12 @@ for (d in 1:ncol(dx)) {
                 # Denoised
                 zscore_png(input_anlm, output_anlm, up_thresholds[t])
             }
-            input = paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",dx_ids[i],"_ses-2")
-            output = paste0(viz_dir, "/", dx_ids[i])
+            # input = paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",dx_ids[i],"_ses-2")
+            # output = paste0(viz_dir, "/", dx_ids[i])
             input_anlm = paste0("../../maps_UKB_space_anlm_all/sub-",dx_ids[i],"_ses-2")
             output_anlm = paste0(viz_dir, "/", dx_ids[i], "_anlm")
 
-            raw_png(input, output, "")
+            # raw_png(input, output, "")
             raw_png(input_anlm, output_anlm, "_anlm")
         }
     }

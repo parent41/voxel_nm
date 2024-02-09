@@ -13,8 +13,9 @@ library(doParallel)
 
 # Load data
 
-names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
+names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM", "jacobians_abs", "jacobians_rel")
 # names = c("FA")
+# names = c("jacobians_abs", "jacobians_rel")
 
 tissues = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissues_all = c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
@@ -26,8 +27,11 @@ nsubj = nrow(nsubj)
 
 # PNGs of voxel-wise NM outputs
 
-raw_up_thresh = c(0.85, 0.003, 0.85, 0.5, 1, 0.5, 150)
-raw_down_thresh = c(0, 0, 0, 0, 0, 0, -100)
+raw_up_thresh = c(0.85, 0.003, 0.85, 0.5, 1, 0.5, 150, 1, 1)
+raw_down_thresh = c(0, 0, 0, 0, 0, 0, -100, -1, -1)
+# raw_up_thresh = c(1, 1) # For DBM
+# raw_down_thresh = c(-1, -1) # For DBM
+
 
 nm = as.data.frame(fread(paste0("./results/nm_",names[1],"_",tissues[1],".tsv")))
 nm = colnames(nm)

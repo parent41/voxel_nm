@@ -7,7 +7,7 @@ library(matrixStats)
 # Arg1: Name of micro
 args = commandArgs(trailingOnly=TRUE)
 
-# args=c("OD")
+# args=c("jacobians_rel")
 
 mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 

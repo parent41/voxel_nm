@@ -282,8 +282,6 @@ do
     rm ./micro_matrices/ids_sub*_ses2_${metrics[i]}_anlm.txt
 done
 
-
-
 #endregion
 
 #################################################################################
@@ -316,7 +314,8 @@ module load cobralab
 module load python/3.9.8
 source ~/.virtualenvs/PCN_env/bin/activate
 
-for micro in $(seq 0 6)
+# for micro in $(seq 0 6)
+for micro in $(seq 7 8)
 do
     for chunk in $(seq 0 30) # 31 chunks of 10,000 voxels
     do
@@ -324,7 +323,7 @@ do
     done
 done > joblist_norm_models_BLR
 
-qbatch -c 1 -w 0:30:00 joblist_test
+# qbatch -c 1 -w 0:30:00 joblist_test
 qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
 
 #endregion
@@ -337,7 +336,8 @@ cd Analyses/subj_zscores_common_dx
 
 module load cobralab
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+# micro=('jacobians_abs' 'jacobians_rel')
 
 for i in ${!micro[@]}
 do
@@ -352,16 +352,18 @@ module load cobralab
 module load python/3.9.8
 source ~/.virtualenvs/PCN_env/bin/activate
 
-for micro in $(seq 0 6)
+for micro in $(seq 0 8)
+# for micro in $(seq 7 8)
 do
     echo python ./subj_zscores_common_dx_2_zscore.py ${micro}
 done > joblist_subj_zscores_common_dx_2_zscore
 
-qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_2_zscore
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_2_zscore
 
 # Make mnc files
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+# micro=('jacobians_abs' 'jacobians_rel')
 
 for i in ${!micro[@]}
 do
@@ -381,6 +383,15 @@ qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_4_viz
 echo Rscript ./subj_zscores_common_dx_5_viz_hist.R > joblist_subj_zscores_common_dx_5_viz_hist
 
 qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_dx_5_viz_hist
+
+# Visualize with GIFs (across slices)
+
+module load cobralab
+module load ffmpeg
+
+echo Rscript ./subj_zscores_common_dx_6_viz_gifs.R > joblist_subj_zscores_common_dx_6_viz_gifs
+
+qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_6_viz_gifs
 
 #endregion
 
@@ -498,10 +509,18 @@ done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_micro
 
 qbatch -c 200 joblist_anlm_micro_maps_dx
 
+while IFS= read -r id; do
+    echo ./scripts/denoise_dbm.sh sub-${id}_ses-2 ../UKB/DBM_2mm ./maps_UKB_space_anlm_dx
+done < "../WMH_micro_spatial/QC/inclusions_only_dx_new.txt" > joblist_anlm_dbm_maps_dx
+
+qbatch -c 200 joblist_anlm_dbm_maps_dx
+
 # Make matrices
 
-micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM')
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+micro_long=('dti_FA' 'dti_MD' 'NODDI_ICVF' 'NODDI_ISOVF' 'NODDI_OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+# micro_long=('jacobians_abs' 'jacobians_rel')
+# micro=('jacobians_abs' 'jacobians_rel')
 
 for i in ${!micro[@]}
 do
@@ -511,7 +530,4 @@ done > joblist_micro_matrices_anlm_dx
 qbatch -c 1 joblist_micro_matrices_anlm_dx
 
 #endregion
-
-
-
 
