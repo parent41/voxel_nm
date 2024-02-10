@@ -108,11 +108,11 @@ zscore_png = function(input, output, up_thresh) {
         label$anatomy_df$intensity = round(label$anatomy_df$intensity,1)
         label_final = rbind(label_final, label$anatomy_df)
 
-        label_ukb = prepare_label_contours(paste0("../../../UKB/temporary_template/bison_ukbb/RF0_ukbb_bison_Label_2mm.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
-        ifelse(slices_axes[a] == "x", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$y, ifelse(slices_axes[a] == "y", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, ifelse(slices_axes[a] == "z", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, NA)))
-        ifelse(slices_axes[a] == "x", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "y", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "z", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$y, NA)))
-        label_ukb$contours_df$slice_index = label_ukb$contours_df$slice_index + n_slices
-        label_ukb_final = rbind(label_ukb_final, label_ukb$contours_df)
+        # label_ukb = prepare_label_contours(paste0("../../../UKB/temporary_template/bison_ukbb/RF0_ukbb_bison_Label_2mm.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$y, ifelse(slices_axes[a] == "y", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, ifelse(slices_axes[a] == "z", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, NA)))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "y", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "z", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$y, NA)))
+        # label_ukb$contours_df$slice_index = label_ukb$contours_df$slice_index + n_slices
+        # label_ukb_final = rbind(label_ukb_final, label_ukb$contours_df)
 
         # Keep track of total number of slices
         n_slices = n_slices + length(slices[[a]])
@@ -143,11 +143,12 @@ zscore_png = function(input, output, up_thresh) {
         return(zscores)
     }
 
-    plot_flair = function(df, cont_df) {
+    # plot_flair = function(df, cont_df) {
+    plot_flair = function(df) {
         flair = ggplot(data = df, aes(x = x_toplot, y = y_toplot)) +
             geom_raster(aes(fill = intensity), alpha = 1) +
             scale_fill_gradient(low='black', high= 'white', limits=c(0,150), oob=squish, guide = "none") +
-            geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="red") +
+            # geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="red") +
             coord_fixed(ratio = 1) +
             facet_wrap(~slice_index, ncol=1) +
             labs(title = "FLAIR") +
@@ -184,7 +185,8 @@ zscore_png = function(input, output, up_thresh) {
     }
 
     zscores = plot_zscore(micro_final %>% filter(mask_value > 0.5), contour_final)
-    flair = plot_flair(flair_final %>% filter(mask_value > 0.5), label_ukb_final)
+    # flair = plot_flair(flair_final %>% filter(mask_value > 0.5), label_ukb_final)
+    flair = plot_flair(flair_final %>% filter(mask_value > 0.5))
     bison = plot_bison(label_final %>% filter(mask_value > 0.5))
 
     # Combine image types with patchwork
@@ -203,10 +205,11 @@ zscore_png = function(input, output, up_thresh) {
 
 raw_png = function(input, output, anlm) {
 
-    raw_up_thresh = c(0.003, 0.5, 0.85, 0.85, 1, 75, 150, 1, 1)
+    raw_up_thresh = c(0.002, 0.3, 0.85, 0.75, 1, 75, 125, 1, 1)
     raw_down_thresh = c(0, 0, 0, 0, 0, 0, -100, -1, -1)
 
     input_id = str_extract(input, "(?<=sub-)\\d+")
+    mask_id = paste0("../../masks_tissue/sub-",input_id,"_ses-2_mask_tissue.mnc")
     # print(input_id)
 
     # Function to rescale intensities between 0 and 1
@@ -254,7 +257,7 @@ raw_png = function(input, output, anlm) {
         contour_final = rbind(contour_final, contour$contours_df)
 
         # micro = prepare_masked_anatomy(list.files(input_dir, pattern = paste0("sub-", input_id, "_ses-2_",names_long[1],"*"), full.names = TRUE), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
-        micro = prepare_masked_anatomy(paste0(input, "_",names_long[1],anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+        micro = prepare_masked_anatomy(paste0(input, "_",names_long[1],anlm,".mnc"), mask_id, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
         ifelse(slices_axes[a] == "x", micro$anatomy_df$x_toplot <- micro$anatomy_df$y, ifelse(slices_axes[a] == "y", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, ifelse(slices_axes[a] == "z", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, NA)))
         ifelse(slices_axes[a] == "x", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "y", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "z", micro$anatomy_df$y_toplot <- micro$anatomy_df$y, NA)))
         micro$anatomy_df$slice_index = micro$anatomy_df$slice_index + n_slices
@@ -262,7 +265,7 @@ raw_png = function(input, output, anlm) {
 
         micro$anatomy_df$Micro = names[1]
         for (n in 2:length(names)) {
-            micro_tmp = prepare_masked_anatomy(paste0(input, "_",names_long[n],anlm,".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+            micro_tmp = prepare_masked_anatomy(paste0(input, "_",names_long[n],anlm,".mnc"), mask_id, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
             ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$y, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, NA)))
             ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$y, NA)))
             micro_tmp$anatomy_df$slice_index = micro_tmp$anatomy_df$slice_index + n_slices
@@ -281,11 +284,11 @@ raw_png = function(input, output, anlm) {
         label$anatomy_df$intensity = round(label$anatomy_df$intensity,1)
         label_final = rbind(label_final, label$anatomy_df)
 
-        label_ukb = prepare_label_contours(paste0("../../../UKB/temporary_template/bison_ukbb/RF0_ukbb_bison_Label_2mm.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
-        ifelse(slices_axes[a] == "x", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$y, ifelse(slices_axes[a] == "y", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, ifelse(slices_axes[a] == "z", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, NA)))
-        ifelse(slices_axes[a] == "x", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "y", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "z", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$y, NA)))
-        label_ukb$contours_df$slice_index = label_ukb$contours_df$slice_index + n_slices
-        label_ukb_final = rbind(label_ukb_final, label_ukb$contours_df)
+        # label_ukb = prepare_label_contours(paste0("../../../UKB/temporary_template/bison_ukbb/RF0_ukbb_bison_Label_2mm.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$y, ifelse(slices_axes[a] == "y", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, ifelse(slices_axes[a] == "z", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, NA)))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "y", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "z", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$y, NA)))
+        # label_ukb$contours_df$slice_index = label_ukb$contours_df$slice_index + n_slices
+        # label_ukb_final = rbind(label_ukb_final, label_ukb$contours_df)
 
         # Keep track of total number of slices
         n_slices = n_slices + length(slices[[a]])
@@ -299,7 +302,8 @@ raw_png = function(input, output, anlm) {
     plot_micro = function(df, cont_df) {
         zscores = ggplot(data=df, aes(x = x_toplot, y = y_toplot)) +
             geom_raster(aes(fill = intensity), alpha = 1) +
-            scale_fill_gradient(low="white", high="red", limits=c(0,1), breaks=c(0,1), oob=squish, name="Micro") +
+            # scale_fill_gradient(low="black", high="white", limits=c(0,1), breaks=c(0,1), oob=squish, name="Micro") +
+            scale_fill_viridis(option="A", limits=c(0,1), breaks=c(0,1), oob=squish, name="Micro") +
             geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="black") +
             coord_fixed(ratio = 1) +
             facet_grid(slice_index~Micro) +
@@ -316,11 +320,12 @@ raw_png = function(input, output, anlm) {
         return(zscores)
     }
 
-    plot_flair = function(df, cont_df) {
+    # plot_flair = function(df, cont_df) {
+    plot_flair = function(df) {
         flair = ggplot(data = df, aes(x = x_toplot, y = y_toplot)) +
             geom_raster(aes(fill = intensity), alpha = 1) +
             scale_fill_gradient(low='black', high= 'white', limits=c(0,150), oob=squish, guide = "none") +
-            geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="red") +
+            # geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="red") +
             coord_fixed(ratio = 1) +
             facet_wrap(~slice_index, ncol=1) +
             labs(title = "FLAIR") +
@@ -357,7 +362,8 @@ raw_png = function(input, output, anlm) {
     }
 
     micros = plot_micro(micro_final %>% filter(mask_value > 0.5), contour_final)
-    flair = plot_flair(flair_final %>% filter(mask_value > 0.5), label_ukb_final)
+    # flair = plot_flair(flair_final %>% filter(mask_value > 0.5), label_ukb_final)
+    flair = plot_flair(flair_final %>% filter(mask_value > 0.5))
     bison = plot_bison(label_final %>% filter(mask_value > 0.5))
 
     # Combine image types with patchwork
@@ -389,7 +395,7 @@ for (d in 1:ncol(dx)) {
 
     dir.create(paste0("./visualization/",colnames(dx)[d]), showWarnings=FALSE)
 
-    foreach(i=1:length(dx_ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'scales', 'patchwork', 'ggnewscale')) %dopar% {
+    foreach(i=1:length(dx_ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'scales', 'patchwork', 'ggnewscale', 'viridis')) %dopar% {
     # for (i in 1:length(dx_ids)) {
         cat(paste0("\n\tID = ", dx_ids[i], "\t"))
         id_row = which(inclusions$ID == dx_ids[i])
@@ -402,15 +408,15 @@ for (d in 1:ncol(dx)) {
             dir.create(viz_dir, showWarnings=FALSE)
             
             # Make PNG (raw)
-            input = paste0(res_dir, "/", dx_ids[i])
-            output = paste0(viz_dir, "/", dx_ids[i])
+            # input = paste0(res_dir, "/", dx_ids[i])
+            # output = paste0(viz_dir, "/", dx_ids[i])
             input_anlm = paste0(res_dir, "/", dx_ids[i],"_anlm")
             output_anlm = paste0(viz_dir, "/", dx_ids[i], "_anlm")
             # For every threshold
             # for (t in 1:length(down_thresholds)) {
             for (t in 1:length(up_thresholds)) {
                 # Not denoised
-                zscore_png(input, output, up_thresholds[t])
+                # zscore_png(input, output, up_thresholds[t])
                 # Denoised
                 zscore_png(input_anlm, output_anlm, up_thresholds[t])
             }
