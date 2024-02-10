@@ -328,6 +328,25 @@ qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
 
 #endregion
 
+#region Create masks of brain tissue labels only from BISON
+
+module load cobralab
+
+mkdir masks_tissue
+
+for file in ../WMH_micro_spatial/maps_UKB_space/*_Label_UKB.mnc
+do
+    echo mincmath -clobber -ge $file -const 2.5 ./masks_tissue/$(basename $file _Label_UKB.mnc)_mask_tissue.mnc
+done > joblist_mask_tissue
+
+head joblist_mask_tissue -n 20000 > joblist_mask_tissue_1_20000
+tail joblist_mask_tissue -n 21628 > joblist_mask_tissue_20001_41628
+
+qbatch -c 500 joblist_mask_tissue_1_20000
+qbatch -c 500 joblist_mask_tissue_20001_41628
+
+#endregion
+
 #region Voxel-wises z-score for subjects with dx in common space
 
 cd Analyses/subj_zscores_common_dx
