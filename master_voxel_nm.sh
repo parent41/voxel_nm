@@ -328,6 +328,46 @@ qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR
 
 #endregion
 
+#region Bayesian Linear Regression with age and sex (excluding most dx on firstocc)
+
+module load cobralab
+module load python/3.9.8
+
+cd ~/.virtualenvs
+virtualenv --system-site-packages ~/.virtualenvs/PCN_env
+source ~/.virtualenvs/PCN_env/bin/activate
+
+git clone https://github.com/predictive-clinical-neuroscience/PCNtoolkit-demo.git
+
+pip install -r PCNtoolkit-demo/tutorials/BLR_protocol/requirements.txt
+pip install --upgrade numpy
+pip install --upgrade pytensor
+pip install --upgrade numba
+pip install plotnine
+pip install pyarrow
+pip install dask
+pip install --upgrade pandas "dask[complete]"
+pip install polars
+
+# Run
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
+
+for micro in $(seq 0 8)
+# for micro in $(seq 7 8)
+do
+    for chunk in $(seq 0 30) # 31 chunks of 10,000 voxels
+    do
+        echo python ./norm_models_BLR_nodx_1_run.py ${micro} ${chunk} 
+    done
+done > joblist_norm_models_BLR_nodx
+
+# qbatch -c 1 -w 0:30:00 joblist_test
+qbatch -c 1 -w 0:30:00 joblist_norm_models_BLR_nodx
+
+#endregion
+
 #region Create masks of brain tissue labels only from BISON
 
 module load cobralab
@@ -347,74 +387,7 @@ qbatch -c 500 joblist_mask_tissue_20001_41628
 
 #endregion
 
-#region Voxel-wises z-score for subjects with dx in common space
-
-cd Analyses/subj_zscores_common_dx
-
-# Make tsv of micro and label for dx only
-
-module load cobralab
-
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
-# micro=('jacobians_abs' 'jacobians_rel')
-
-for i in ${!micro[@]}
-do
-    echo Rscript subj_zscores_common_dx_1_select_rows.R ${micro[i]}
-done > joblist_subj_zscores_common_dx_1_select_rows
-
-qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_1_select_rows
-
-# Z-scores for participants with dx
-
-module load cobralab
-module load python/3.9.8
-source ~/.virtualenvs/PCN_env/bin/activate
-
-for micro in $(seq 0 8)
-# for micro in $(seq 7 8)
-do
-    echo python ./subj_zscores_common_dx_2_zscore.py ${micro}
-done > joblist_subj_zscores_common_dx_2_zscore
-
-qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_2_zscore
-
-# Make mnc files
-
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
-# micro=('jacobians_abs' 'jacobians_rel')
-
-for i in ${!micro[@]}
-do
-    echo Rscript subj_zscores_common_dx_3_mnc.R ${micro[i]}
-done > joblist_subj_zscores_common_dx_3_mnc
-
-qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_3_mnc
-
-# Visualize
-
-echo Rscript subj_zscores_common_dx_4_viz.R > joblist_subj_zscores_common_dx_4_viz
-
-qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_4_viz
-
-# Add histograms
-
-echo Rscript ./subj_zscores_common_dx_5_viz_hist.R > joblist_subj_zscores_common_dx_5_viz_hist
-
-qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_dx_5_viz_hist
-
-# Visualize with GIFs (across slices)
-
-module load cobralab
-module load ffmpeg
-
-echo Rscript ./subj_zscores_common_dx_6_viz_gifs.R > joblist_subj_zscores_common_dx_6_viz_gifs
-
-qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_6_viz_gifs
-
-#endregion
-
-#region Voxel-wises z-score for healthy subjects in common space
+#region Voxel-wises z-score for all subjects in common space
 
 # Z-scores
 
@@ -422,17 +395,20 @@ module load cobralab
 module load python/3.9.8
 source ~/.virtualenvs/PCN_env/bin/activate
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
 
 for m in ${!micro[@]}
 do
     for i in $(seq 0 32)
     do
-        echo python ./subj_zscores_common_hc_1_zscore.py ${m} ${i}
+        echo python ./subj_zscores_common_all_1_zscore.py ${m} ${i}
     done
 done > joblist_subj_zscores_common_hc_1_zscore
 
-qbatch -c 2 joblist_subj_zscores_common_hc_1_zscore
+# qbatch -c 4 -w 4:00:00 joblist_test
+qbatch -c 6 -w 4:00:00 joblist_test_c6
+qbatch -c 8 -w 4:00:00 joblist_test_c8
+
 qbatch -c 2 -w 3:20:00 joblist_subj_zscores_common_hc_1_zscore
 
 # Make mnc files
@@ -550,3 +526,115 @@ qbatch -c 1 joblist_micro_matrices_anlm_dx
 
 #endregion
 
+#region Voxel-wises z-score for subjects with dx in common space
+
+cd Analyses/subj_zscores_common_dx
+
+# Make tsv of micro and label for dx only
+
+module load cobralab
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+# micro=('jacobians_abs' 'jacobians_rel')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_dx_1_select_rows.R ${micro[i]}
+done > joblist_subj_zscores_common_dx_1_select_rows
+
+qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_1_select_rows
+
+# Z-scores for participants with dx
+
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
+
+for micro in $(seq 0 8)
+# for micro in $(seq 7 8)
+do
+    echo python ./subj_zscores_common_dx_2_zscore.py ${micro}
+done > joblist_subj_zscores_common_dx_2_zscore
+
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_dx_2_zscore
+
+# Make mnc files
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+# micro=('jacobians_abs' 'jacobians_rel')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_dx_3_mnc.R ${micro[i]}
+done > joblist_subj_zscores_common_dx_3_mnc
+
+qbatch -c 1 -w 1:30:00 joblist_subj_zscores_common_dx_3_mnc
+
+# Visualize
+
+echo Rscript subj_zscores_common_dx_4_viz.R > joblist_subj_zscores_common_dx_4_viz
+
+qbatch -c 1 -w 1:00:00 joblist_subj_zscores_common_dx_4_viz
+
+# Add histograms
+
+echo Rscript ./subj_zscores_common_dx_5_viz_hist.R > joblist_subj_zscores_common_dx_5_viz_hist
+
+qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_dx_5_viz_hist
+
+# Visualize with GIFs (across slices)
+
+module load cobralab
+module load ffmpeg
+
+echo Rscript ./subj_zscores_common_dx_6_viz_gifs.R > joblist_subj_zscores_common_dx_6_viz_gifs
+
+qbatch -c 1 -w 2:00:00 joblist_subj_zscores_common_dx_6_viz_gifs
+
+#endregion
+
+#region Voxel-wises z-score for healthy subjects in common space
+
+# Z-scores
+
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for m in ${!micro[@]}
+do
+    for i in $(seq 0 32)
+    do
+        echo python ./subj_zscores_common_hc_1_zscore.py ${m} ${i}
+    done
+done > joblist_subj_zscores_common_hc_1_zscore
+
+qbatch -c 2 joblist_subj_zscores_common_hc_1_zscore
+qbatch -c 2 -w 3:20:00 joblist_subj_zscores_common_hc_1_zscore
+
+# Make mnc files
+
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
+
+for i in ${!micro[@]}
+do
+    echo Rscript subj_zscores_common_hc_2_mnc.R ${micro[i]}
+done > joblist_subj_zscores_common_hc_2_mnc
+
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_2_mnc
+
+# Visualize
+
+echo Rscript ./subj_zscores_common_hc_3_viz.R > joblist_subj_zscores_common_hc_3_viz
+
+qbatch -c 1 -w 3:00:00 joblist_subj_zscores_common_hc_3_viz
+
+# Add histograms
+
+echo Rscript ./subj_zscores_common_hc_4_viz_hist.R > joblist_subj_zscores_common_hc_4_viz_hist
+
+qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_hc_4_viz_hist
+
+#endregion
