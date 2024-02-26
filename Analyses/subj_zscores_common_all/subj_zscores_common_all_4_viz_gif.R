@@ -318,8 +318,16 @@ parallelCluster <- makeCluster(cores-5, type = "SOCK", methods = FALSE)
 setDefaultCluster(parallelCluster)
 registerDoParallel(parallelCluster)
 
-id_list = c("1235478", "1776711", "4519919", "5836644", "1421334", "1607044")
-axes_to_viz = c("z", "z", "z", "z", "x", "x")
+# id_list = c("1235478", "1776711", "4519919", "5836644", "1421334", "1607044", "2076982", "1184629")
+ms_high_constrained = c("1184629", "1371048", "1668620", "1737426", "2613573", "2625962", "3338458", "3946309", "4007089", "4365846", "5070045", "5603712", "5809382")
+ms_high_widespread = c("1473445", "2076982", "2497033", "2923796", "3250064", "3683924", "3952119", "4519919", "4627730", "5130138")
+ms_low_constrained = c("5454366")
+ms_low_widespread = c("1431895", "2349694", "2598020", "3193648", "5313970", "5534732")
+
+id_list = c(ms_high_constrained, ms_high_widespread, ms_low_constrained,ms_low_widespread )
+
+# axes_to_viz = c("z", "z", "z", "z", "x", "x", "z", "z")
+axes_to_viz = rep("z", length(id_list))
 
 viz_dir = paste0("./visualization/anim")
 dir.create(viz_dir, showWarnings=FALSE)
@@ -384,7 +392,7 @@ foreach(i=1:length(id_list), .packages = c('RMINC', 'RColorBrewer', 'tidyverse',
     system(command)
 
     # Delete tmp directory
-    unlink(viz_tmp, recursive = TRUE)
+    # unlink(viz_tmp, recursive = TRUE)
 }
 
 

@@ -8,9 +8,10 @@ import multiprocessing as mp
 import sys
 import subprocess
 import os
+import pyminc.volumes.factory as pyminc
 
 # num_micro = 0
-# num_chunk = 32
+# num_chunk = 0
 
 num_micro = int(sys.argv[1])
 num_chunk = int(sys.argv[2])
@@ -93,6 +94,7 @@ np.savetxt(f"./tmp/idx_label_c{num_chunk}_{name}.txt", indices_label_plus1, fmt=
 # Test with ID file (make sure same IDs as in chunk)
 command = f"./select_rows.sh ../../bison_matrices/ids_ses2_Label_whole_brain.txt ./tmp/ids_label_c{num_chunk}_{name}.txt ./tmp/idx_label_c{num_chunk}_{name}.txt"
 subprocess.call(command, shell=True)
+ids_label = pd.read_csv(f"./tmp/ids_label_c{num_chunk}_{name}.txt", header=None)
 # command = f"./select_rows.sh ../../micro_matrices/ids_ses2_{name}.txt ./tmp/ids_micro_c{num_chunk}_{name}.txt ./tmp/idx_micro_c{num_chunk}_{name}.txt"
 # subprocess.call(command, shell=True)
 
@@ -105,10 +107,10 @@ subprocess.call(command, shell=True)
 label = pl.read_csv(f"./tmp/label_c{num_chunk}_{name}.tsv", has_header=False, separator="\t").to_pandas()
 # micro = pl.read_csv(f"./tmp/micro_c{num_chunk}_{name}.tsv", has_header=False, separator="\t").to_pandas()
 
-print(inclusions.shape)
-print(demo.shape)
+# print(inclusions.shape)
+# print(demo.shape)
 # print(micro.shape)
-print(label.shape)
+# print(label.shape)
 
 nvox = label.shape[1]
 
@@ -130,12 +132,20 @@ np.savetxt(f"./tmp/idx_micro_c{num_chunk}_{name}_anlm.txt", indices_micro_plus1,
 # Test with ID file (make sure same IDs as in chunk)
 command = f"./select_rows.sh ../../micro_matrices/ids_ses2_{name}_anlm.txt ./tmp/ids_micro_c{num_chunk}_{name}_anlm.txt ./tmp/idx_micro_c{num_chunk}_{name}_anlm.txt"
 subprocess.call(command, shell=True)
+ids_micro = pd.read_csv(f"./tmp/ids_micro_c{num_chunk}_{name}_anlm.txt", header=None)
 # Make sub-matrices of subjects x voxels
 command = f"./select_rows.sh ../../micro_matrices/ses2_{name}_anlm.tsv ./tmp/micro_c{num_chunk}_{name}_anlm.tsv ./tmp/idx_micro_c{num_chunk}_{name}_anlm.txt"
 subprocess.call(command, shell=True)
 
 # label = pl.read_csv(f"./tmp/label_c{num_chunk}_{name}.tsv", has_header=False, separator="\t").to_pandas()
 micro = pl.read_csv(f"./tmp/micro_c{num_chunk}_{name}_anlm.tsv", has_header=False, separator="\t").to_pandas()
+
+# Remove ids not in chunk for inclusions and demo dataframes
+ids_micro.rename(columns={0: 'ID'}, inplace=True)
+ids_label.rename(columns={0: 'ID'}, inplace=True)
+
+demo = pd.merge(demo, ids_micro, on='ID', how='inner')
+inclusions = pd.merge(inclusions, ids_micro, on='ID', how='inner')
 
 print(inclusions.shape)
 print(demo.shape)
@@ -148,6 +158,25 @@ num_cpus = mp.cpu_count()
 results = Parallel(n_jobs=int(num_cpus-5))(delayed(zscore_nm)(i) for i in range(micro.shape[0]))
 results = pd.DataFrame(results)
 results.to_csv(f"./results/zscores_c{num_chunk}_{name}_anlm.tsv", sep='\t', index=False, na_rep="NA")
+
+# Write to mnc
+
+mask = pyminc.volumeFromFile("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
+
+for i in range(results.shape[0]): 
+    print(i)
+    demo_id = demo.iloc[i,:]
+    # Sometimes reading out_vol doesnt work...
+    out_vol = None
+    while out_vol is None:
+        try:
+            out_vol = pyminc.volumeLikeFile("../../../UKB/temporary_template/avg.020_2mm.mnc", f"./results/mnc/{demo_id['ID']}_zscore_anlm_{name}.mnc", volumeType="float")
+        except:
+            pass
+    out_vol.data[mask.data>0.5] = results.iloc[i,:]
+    out_vol.data[np.isnan(out_vol.data)] = 0
+    out_vol.writeFile()
+
 
 # Clean tmp directory
 if os.path.exists(f"./tmp/label_c{num_chunk}_{name}.tsv") and name != "FA":
@@ -162,3 +191,16 @@ if os.path.exists(f"./tmp/micro_c{num_chunk}_{name}_anlm.tsv"):
 
 
 
+
+
+
+
+
+
+# # Compare numeric precision of old RMINC mincWriteVolume output vs new pyminc writeFile output
+# test_old = pyminc.volumeFromFile("./results/mnc/1000083_zscore_anlm_FA.mnc").data[mask.data>0.5]
+# test_new = pyminc.volumeFromFile("./results/mnc/1000083_zscore_anlm_FA_TEST.mnc").data[mask.data>0.5]
+# ground_truth = zscores_id
+# valid_indices = ~np.isnan(ground_truth)
+# sum_squared_diff_old = np.sum((test_old[valid_indices] - ground_truth[valid_indices]) ** 2) # SSR = 320945.93861940096
+# sum_squared_diff_new = np.sum((test_new[valid_indices] - ground_truth[valid_indices]) ** 2) # SSR = 1.1454190617372168e-10

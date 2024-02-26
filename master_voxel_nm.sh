@@ -401,10 +401,10 @@ for m in ${!micro[@]}
 do
     for i in $(seq 0 32)
     do
-        if [ ! -f ./results/zscores_c${i}_${micro[m]}_anlm.tsv ]
-        then
+        # if [ ! -f ./results/zscores_c${i}_${micro[m]}_anlm.tsv ]
+        # then
         echo python ./subj_zscores_common_all_1_zscore.py ${m} ${i}
-        fi
+        # fi
     done
 done > joblist_subj_zscores_common_all_1_zscore
 
@@ -416,44 +416,22 @@ done > joblist_subj_zscores_common_all_1_zscore
 
 qbatch -c 4 -w 2:30:00 joblist_subj_zscores_common_all_1_zscore
 
-# Make mnc files
-
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
-
-for m in ${!micro[@]}
-do
-    for i in $(seq 0 32)
-    do
-    echo Rscript subj_zscores_common_all_2_mnc.R ${m} ${i}
-    done
-done > joblist_subj_zscores_common_all_2_mnc
-
-# head joblist_subj_zscores_common_all_2_mnc -n 40 > joblist_test_40
-# qbatch -c 10 -w 8:00:00 joblist_test_10
-
-# head joblist_subj_zscores_common_all_2_mnc -n 40 > joblist_test_40
-# qbatch -c 40 -w 8:00:00 joblist_test_40
-
-# Worked with c40, but at the limits of RAM, c30 to be safe
-
-qbatch -c 30 -w 1:20:00 joblist_subj_zscores_common_all_2_mnc
-
 # Visualize maps of zscores and raw metrics
 
 for i in $(seq 0 32)
 do
-    echo Rscript subj_zscores_common_all_3_viz.R ${i}
-done > joblist_subj_zscores_common_all_3_viz
+    echo Rscript subj_zscores_common_all_2_viz.R ${i}
+done > joblist_subj_zscores_common_all_2_viz
 
-qbatch -c 1 -w 0:30:00 joblist_subj_zscores_common_all_3_viz
+qbatch -c 1 -w 0:30:00 joblist_subj_zscores_common_all_2_viz
 
 echo python script.py > joblist_script
 
 # Visualize histograms of zscores by region
 
-echo Rscript ./subj_zscores_common_hc_4_viz_hist.R > joblist_subj_zscores_common_hc_4_viz_hist
+echo Rscript ./subj_zscores_common_hc_3_viz_hist.R > joblist_subj_zscores_common_hc_3_viz_hist
 
-qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_hc_4_viz_hist
+qbatch -c 1 -w 24:00:00 joblist_subj_zscores_common_hc_3_viz_hist
 
 # Visualize gifs/mp4s of zscores and raw metrics
 
@@ -510,6 +488,15 @@ do
 done > joblist_dx_average
 
 qbatch -c 1 -w 2:00:00 joblist_dx_average
+
+
+#endregion
+
+#region Spatial correlation of zscores vs raw
+
+module load cobralab
+module load python/3.9.8
+source ~/.virtualenvs/PCN_env/bin/activate
 
 
 #endregion
