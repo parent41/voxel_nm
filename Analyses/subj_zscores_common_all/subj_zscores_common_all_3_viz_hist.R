@@ -7,9 +7,6 @@ library(ggplot2)
 library(scales)
 library(tidyverse)
 
-#################### COULD BE MADE MORE EFFICIENT IF USING MINC FILES INSTEAD OF TSV
-#################### (HAVE TO MAKE MINC FILES ACCURATE WITH MINCWRITEVOLUME FIRST)
-
 # Arg 1: Micro name
 args = commandArgs(trailingOnly=TRUE)
 num_chunk = as.numeric(args[2])
@@ -38,25 +35,19 @@ dx[,c(2,5,6,9,10)] = as.data.frame(lapply(dx[,c(2,5,6,9,10)], as.factor))
 
 ids_label = as.data.frame(fread(paste0("./tmp/ids_label_c",num_chunk,"_FA.txt")))
 colnames(ids_label) = "ID"
-label=as.data.frame(fread(paste0("./tmp/label_c",num_chunk,"_FA.tsv")))
-
 ids_micro_all = list()
-zscores_anlm_all = list()
 
 for (n in 1:length(names)) {
     print(names[n])
-
     ids_micro_all[[n]] = as.data.frame(fread(paste0("./tmp/ids_micro_c",num_chunk,"_",names[n],"_anlm.txt")))
-    zscores_anlm_all[[n]] = as.data.frame(fread(paste0("./results/zscores_c",num_chunk,"_",names[n],"_anlm.tsv"), header=TRUE))
 }
 
 # Make density plots
-
-tissue=c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
-
 ids = as.numeric(ids_micro_all[[1]]$V1)
 
+tissue=c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
 color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#448312", ICVF="#2B520B", OD="#A2C189", T2star="#D36108", QSM="#E9B084", jacobians_abs = "#00A7B9", jacobians_rel = "#47EDFF")
+mask = mincGetVolume("../../../UKB/temporary_template/Mask_2mm_dil2.mnc")
 
 for (i in 1:length(ids)) {
     print(ids[i])
@@ -73,10 +64,12 @@ for (i in 1:length(ids)) {
     vis_dir=paste0("./visualization/",id_string)
     dir.create(vis_dir, showWarnings=FALSE)
 
+    label_id = mincGetVolume(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",ids[i],"_ses-2_Label_UKB.mnc"))
     df = list()
     for (n in 1:length(names)) {
         print(names[n])
-        df[[n]] = as.data.frame(cbind(as.numeric(zscores_anlm_all[[n]][which(ids_micro_all[[n]]$V1 == ids[i]),]), as.numeric(label[which(ids_micro_all[[n]]$V1 == ids[i]),])))
+        micro_id = mincGetVolume(paste0("./results/mnc/",ids[i],"_zscore_anlm_",names[n],".mnc"))
+        df[[n]] = as.data.frame(cbind(as.numeric(micro_id[][which(mask[]>0.5)]), round(as.numeric(label_id[][which(mask[]>0.5)]),0)))
         colnames(df[[n]]) = c("Values", "Label")
         df[[n]]$Label = as.factor(df[[n]]$Label)
         df[[n]] = df[[n]][which(df[[n]]$Label %in% c(3,4,5,6,7,8,9)),]
