@@ -423,9 +423,7 @@ do
     echo Rscript subj_zscores_common_all_2_viz.R ${i}
 done > joblist_subj_zscores_common_all_2_viz
 
-qbatch -c 1 -w 0:30:00 joblist_subj_zscores_common_all_2_viz
-
-echo python script.py > joblist_script
+qbatch -c 1 -w 0:45:00 joblist_subj_zscores_common_all_2_viz
 
 # Visualize histograms of zscores by region
 
@@ -494,10 +492,23 @@ qbatch -c 1 -w 2:00:00 joblist_dx_average
 
 #region Spatial correlation of zscores vs raw
 
-module load cobralab
-module load python/3.9.8
-source ~/.virtualenvs/PCN_env/bin/activate
+# Generate correlation matrices within each subject
 
+module load cobralab
+
+for i in $(seq 0 32)
+do
+    echo Rscript spatial_corr_zscores_1_indiv.R ${i}
+done > joblist_spatial_corr_zscores_1_indiv
+
+qbatch -c 1 joblist_spatial_corr_zscores_1_indiv
+
+# Concatenate results
+
+awk 'NR==1{print; next} FNR>1' results/indiv/*raw.tsv > ./results/indiv_concat_raw.tsv
+awk 'NR==1{print; next} FNR>1' results/indiv/*zscores.tsv > ./results/indiv_concat_zscores.tsv
+
+rm -r results/indiv
 
 #endregion
 
