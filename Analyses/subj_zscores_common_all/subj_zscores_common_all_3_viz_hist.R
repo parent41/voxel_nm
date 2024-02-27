@@ -61,7 +61,7 @@ for (i in 1:length(ids)) {
         }
     }
 
-    vis_dir=paste0("./visualization/",id_string)
+    vis_dir=paste0("./visualization/indiv/",id_string)
     dir.create(vis_dir, showWarnings=FALSE)
 
     label_id = mincGetVolume(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",ids[i],"_ses-2_Label_UKB.mnc"))
