@@ -408,6 +408,16 @@ annot_demo_dx = function(df, output) {
         plt = plt + geom_text(data = dx_lines, aes(x = x, y = y, label = label), size = 2)
     }
 
+    if (nrow(df) == 1 & is.na(df$dx_name) == FALSE) {
+        dx_lines <- data.frame(
+            x = rep(0, nrow(df)),
+            y = 0.7,
+            label = paste0(df$icd_code, ": ", df$dx_name, " (", round(df$days_mri_dx/365,2), " years)")
+            )
+
+        plt = plt + geom_text(data = dx_lines, aes(x = x, y = y, label = label), size = 2)
+    }
+
     ggsave(paste0(output, ".png"), plot = plt, bg="white", width=3000, height=600, units="px")
 }
 
@@ -422,7 +432,8 @@ foreach(i=1:length(ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'sc
     cat(paste0("\nID = ", ids[i], "\n"))
 
     dx_id = dx[which(dx$ID %in% ids[i]),]
-    dx_id <- dx_id[order(substr(dx_id$icd_code, 1, 1), as.numeric(substr(dx_id$icd_code, 2, 3))), ]
+    # dx_id <- dx_id[order(substr(dx_id$icd_code, 1, 1), as.numeric(substr(dx_id$icd_code, 2, 3))), ]
+    dx_id <- dx_id[order(as.numeric(dx_id$days_mri_dx)), ]
 
     id_string = paste0(ids[i], "_", dx_id$Age[1], ifelse(dx_id$Sex[1] == "Female", "F", "M"))
     if(is.na(dx_id$icd_code[1]) == FALSE) {
