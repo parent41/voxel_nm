@@ -36,7 +36,7 @@ corrmat_by_reg = function(df, type) {
             filter(Label == levels(factor(df$Label))[l]) %>%
             bind_rows(
                 df %>%
-                    filter(Label == levels(factor(df$Label)[l])) %>%
+                    filter(Label == levels(factor(df$Label))[l]) %>%
                     mutate(across(c(Marker_1, Marker_2), ~ ifelse(Marker_1 == ., Marker_2, Marker_1)))
             ) %>%
             mutate(marker_1_2 = factor(paste0(Marker_1,"_with_",Marker_2))) %>%
@@ -75,10 +75,39 @@ corrmat_by_reg(corr_z, "zscores")
 command = paste0("convert -gravity center ./visualization/corrmat_by_region/corrmat_raw_allregions.png ./visualization/corrmat_by_region/corrmat_zscores_allregions.png +append ./visualization/corrmat_by_region/corrmat_all_allregions.png")
 system(command)
 
+# Interactions between regions within each marker
 
+slopes_across_reg = function(df, type) {
 
+    df_tmp = df %>%
+        bind_rows(
+            df %>% mutate(across(c(Marker_1, Marker_2), ~ ifelse(Marker_1 == ., Marker_2, Marker_1)))
+        ) %>%
+        mutate(marker_1_2 = factor(paste0(Marker_1,"_with_",Marker_2))) %>%
+        group_by(marker_1_2, Label) %>%
+        dplyr::summarize(mean = mean(cor, na.rm=TRUE)) %>%
+        separate(marker_1_2, into = c("Marker_1", "Marker_2"), sep = "_with_") %>%
+        arrange(factor(Marker_1, levels = names), factor(Marker_2, levels = names)) #%>%
+        # pivot_wider(names_from = Marker_2, values_from = mean) %>%
+        # column_to_rownames("Marker_1") %>%
+        # select(names) #%>%
+        # glimpse()
 
+    df_tmp[,c(1,2,3)] = as.data.frame(lapply(df_tmp[,c(1,2,3)], as.factor))
 
+    ggplot(df_tmp, aes(x = seq(-1,1, by=0.01), y = seq(-1,1, by=0.01))) +
+        geom_abline(aes(slope = mean, intercept=0, color=Label), size=0.3, alpha=0.7) +
+        geom_abline(data = df_tmp[df_tmp$Label == "Whole_brain",], aes(slope = mean, intercept=0), color="black", size=0.8, alpha=0.7) +
+        facet_grid(factor(Marker_1, levels=names) ~ factor(Marker_2, levels=names)) + 
+        scale_y_continuous(limits = c(-1,1), breaks=c(-1,0,1), name="") + 
+        scale_x_continuous(limits = c(-1,1), breaks=c(-1,0,1), name="")
+    ggsave(paste0("./visualization/slopes_across_reg/slopes_across_reg_",type,".png"), width=12, height=10)
+}
+
+dir.create("./visualization/slopes_across_reg", showWarnings=FALSE)
+
+slopes_across_reg(corr_r, "raw")
+slopes_across_reg(corr_z, "zscores")
 
 
 

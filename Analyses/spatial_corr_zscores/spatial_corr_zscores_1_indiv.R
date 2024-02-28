@@ -8,7 +8,7 @@ library(doParallel)
 
 args = commandArgs(trailingOnly=TRUE)
 
-dir.create("./visualization/indiv", showWarnings=FALSE)
+# dir.create("./visualization/indiv", showWarnings=FALSE)
 dir.create("./results/indiv", showWarnings=FALSE)
 
 # args = c()
