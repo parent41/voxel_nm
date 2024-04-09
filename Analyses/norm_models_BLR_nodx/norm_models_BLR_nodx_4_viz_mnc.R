@@ -58,16 +58,30 @@ for (n in 1:length(names)) {
             overlayVol = mincArray(mincGetVolume(paste0("./results/mnc/",names[n],"/",tissues[t],"/",nm[c],".mnc")))
 
             if (grepl("male", nm[c], ignore.case = TRUE)) {
+
+                # Clamp values
+                overlayVol[] = pmin(pmax(overlayVol[], raw_down_thresh[n]), raw_up_thresh[n])
+
+                up_thresh = raw_up_thresh[n]
+                down_thresh = raw_down_thresh[n]
+
+                # Positive only
+                if (names[n] %in% c("QSM", "jacobians_abs", "jacobians_rel")) {
+                    overlayVol[] = overlayVol[] + abs(raw_down_thresh[n])
+                    down_thresh = down_thresh + abs(raw_down_thresh[n])
+                    up_thresh = up_thresh + abs(raw_down_thresh[n])
+                }
+
                 png(file=paste0("./visualization/mnc/",names[n],"/",tissues[t], "/",names[n],"_",tissues[t], "_",nm[c],".png"), width=8500, height=4000, pointsize = 150)
                 sliceSeries(nrow=1, ncol=1, begin = 51, end = 51, dimension=1) %>%
                     anatomy(anatVol, low=10, high=200) %>%
-                    overlay(overlayVol, low=raw_down_thresh[n], high=raw_up_thresh[n],col=magma(255)) %>%
+                    overlay(overlayVol, low=down_thresh, high=up_thresh,col=magma(255)) %>%
                 sliceSeries(nrow=1, ncol=1, begin = 59, end = 59, dimension=2) %>%
                     anatomy(anatVol, low=10, high=200) %>%
-                    overlay(overlayVol, low=raw_down_thresh[n], high=raw_up_thresh[n],col=magma(255)) %>%
+                    overlay(overlayVol, low=down_thresh, high=up_thresh,col=magma(255)) %>%
                 sliceSeries(nrow=1, ncol=1, begin = 40, end = 40, dimension=3) %>%
                     anatomy(anatVol, low=10, high=200) %>%
-                    overlay(overlayVol, low=raw_down_thresh[n], high=raw_up_thresh[n],col=magma(255)) %>%
+                    overlay(overlayVol, low=down_thresh, high=up_thresh,col=magma(255)) %>%
                 legend(nm[c]) %>%
                 draw()
                 dev.off()
