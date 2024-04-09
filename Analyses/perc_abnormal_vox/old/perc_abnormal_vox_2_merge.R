@@ -10,25 +10,66 @@ library(ggpubr)
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
 
-names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "jacobians_rel", "jacobians_abs")
+names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
 
 # Load tab data
 print("Load tab data")
-inclusions = as.data.frame(fread("../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt"))
+inclusions = as.data.frame(fread("../../../WMH_micro_spatial/QC/inclusions_excluding_dx_new.txt"))
 colnames(inclusions) = "ID"
+inclusions_dx = as.data.frame(fread("../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt"))
+colnames(inclusions_dx) = "ID"
 
 demo = as.data.frame(fread("../../../UKB/tabular/df_demo/UKBB_demo_wider.tsv"))
 demo = subset(demo, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when_attended_assessment_centre_21003_0'))
 colnames(demo) = c("ID", "Sex", "Age")
 demo = merge(inclusions, demo, by="ID", all.x=TRUE)
 
-df_dx = as.data.frame(fread("../../../WMH_micro_spatial/Analyses_nm/predict_firstocc_categ/results/firstocc_categ.tsv"))
+demo$dx_1 = NA
+demo$dx_2 = NA
 
-no_dx_ids = as.data.frame(inclusions$ID[!(inclusions$ID %in% df_dx$ID)])
-colnames(no_dx_ids) = "ID"
-df_dx = merge(no_dx_ids, df_dx, by="ID", all=TRUE)
+# Load and merge dx data
 
-df = merge(demo, df_dx, all.y=TRUE, by="ID")
+demo_dx = as.data.frame(fread("../../../UKB/tabular/df_demo/UKBB_demo_wider.tsv"))
+demo_dx = subset(demo_dx, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when_attended_assessment_centre_21003_0'))
+colnames(demo_dx) = c("ID", "Sex", "Age")
+demo_dx = merge(inclusions_dx, demo_dx, by="ID", all.x=TRUE)
+
+dx = as.data.frame(fread("../../../UKB/QC/exclusion_lists/dx_single.csv"))
+colnames(dx) = c("Stroke", "TIA", "Subdural_H", "Subarachnoid_H", "Head_trauma", "Psychiatric", "Infection_nerv", "Abscess", 
+                "Encephalitis", "Meningitis", "Chronic_neurol", "Motor_neuron_disease", "MS", "PD", "Cog_imp", "Epilepsy",
+                "Head_injury", "Alcoholism", "Opioid_dep", "Other_dep", "Other_neurol", "Haemorrhage", "Ischaemic_stroke", "Fracture")
+
+# Max number of dx for one person
+max_occurrences <- function(row) {
+  max(table(row))
+}
+max_counts <- apply(dx, 1, max_occurrences)
+max_dx <- max(max_counts)
+
+# Merge demo and dx
+demo_dx$dx_1 = NA
+demo_dx$dx_2 = NA
+
+for (c in 1:ncol(dx)) {
+  # print(colnames(dx)[c])
+  for (id in 1:nrow(dx)) {
+    # print(dx[id,c])
+    row_demo = which(demo_dx$ID %in% dx[id,c])
+    if (length(row_demo) > 0) {
+      if (is.na(demo_dx$dx_1[row_demo])==TRUE) {
+        demo_dx$dx_1[row_demo] = colnames(dx)[c]
+      } else {
+        demo_dx$dx_2[row_demo] = colnames(dx)[c]
+      }
+    }
+  }
+}
+
+# Merge hc and dx
+
+demo_all = rbind(demo, demo_dx)
+
+demo_all[,c(2,4,5)] = as.data.frame(lapply(demo_all[,c(2,4,5)], as.factor))
 
 # Load perc abnormal vox results
 
@@ -78,8 +119,6 @@ results <- as.data.frame(results %>%
 
 results$label_value[is.na(results$label_value)] <- 10
 results$perc_vox_above_thresh[results$label_value == 10] = results$count_vox_above_thresh[results$label_value == 10] / results$count_vox_label[results$label_value == 10]
-
-fwrite(results, "./results/results_tmp.tsv", row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")
 
 # Remove dx with prevalence less than 30
 

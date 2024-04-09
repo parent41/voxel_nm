@@ -440,41 +440,21 @@ module load ffmpeg
 
 #region Percentage of abnormal voxels per tissue type
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM')
-
-# args[1] = "FA"
-# args[2] = "../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv"
-# args[3] = "../subj_zscores_common_dx/results/zscores_anlm_FA.tsv"
-# args[4] = "../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt"
-# args[5] = "./results/perc_abnormal_dx_FA_anlm.tsv"
-
-# first for dx
-for m in ${!micro[@]}
-do
-    echo Rscript ./perc_abnormal_vox.R ${micro[m]} \
-        ../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv \
-        ../subj_zscores_common_dx/results/zscores_anlm_${micro[m]}.tsv \
-        ../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt \
-        ./results/raw/perc_abnormal_dx_${micro[m]}_anlm.tsv
-done > joblist_perc_abnormal_vox
-
-# then for hc
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM', 'jacobians_abs', 'jacobians_rel')
 
 for m in ${!micro[@]}
 do
     for i in $(seq 0 32)
     do
-        echo Rscript ./perc_abnormal_vox.R ${micro[m]} \
-                ../subj_zscores_common_hc/tmp/label_c${i}_FA.tsv \
-                ../subj_zscores_common_hc/results/zscores_c${i}_${micro[m]}_anlm.tsv \
-                ../subj_zscores_common_hc/tmp/ids_label_c${i}_${micro[m]}.txt \
-                ./results/perc_abnormal_hc_c${i}_${micro[m]}_anlm.tsv
-    done >> joblist_perc_abnormal_vox
-done
+        echo Rscript ./perc_abnormal_vox_1_run.R ${micro[m]} \
+            ../subj_zscores_common_all/tmp/label_c${i}_FA.tsv \
+            ../subj_zscores_common_all/results/zscores_c${i}_${micro[m]}_anlm.tsv \
+            ../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt \
+            ./results/raw/perc_abnormal_c${i}_${micro[m]}_anlm.tsv
+    done
+done > joblist_perc_abnormal_vox
 
-qbatch -c 5 -w 2:45:00 joblist_perc_abnormal_vox
-
-
+qbatch -c 4 -w 3:00:00 joblist_perc_abnormal_vox
 
 #endregion
 

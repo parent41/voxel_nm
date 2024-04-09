@@ -8,9 +8,9 @@ args = commandArgs(trailingOnly=TRUE)
 
 # args = c()
 # args[1] = "FA"
-# args[2] = "../subj_zscores_common_all/tmp/label_c0_FA.tsv"
-# args[3] = "../subj_zscores_common_all/results/zscores_c0_FA_anlm.tsv"
-# args[4] = "../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt"
+# args[2] = "../subj_zscores_common_dx/results/ses2_Label_whole_brain_dx.tsv"
+# args[3] = "../subj_zscores_common_dx/results/zscores_anlm_FA.tsv"
+# args[4] = "../../../WMH_micro_spatial/QC/inclusions_only_dx_new.txt"
 # args[5] = "./results/raw/perc_abnormal_dx_FA_anlm.tsv"
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
@@ -65,6 +65,7 @@ results = perc_values_above_thresholds(demo$ID[1], as.numeric(micro[1,]), as.num
 
 for (id in 2:nrow(micro)) {
   print(demo$ID[id])
+  
   id_result = perc_values_above_thresholds(demo$ID[id], as.numeric(micro[id,]), as.numeric(label[id,]))
 
   results = rbind(results, id_result)
