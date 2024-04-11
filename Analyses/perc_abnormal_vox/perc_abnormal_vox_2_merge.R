@@ -18,8 +18,14 @@ results_fl = list.files("./results/raw", pattern="*", full.names = TRUE)
 results_list = list()
 for (f in 1:length(results_fl)) {
     print(results_fl[f])
+
+    if (grepl("jacobians", results_fl[f])) {
+      micro_res = sub(".*_(?:.*_){2}(.*_.*?)_.*", "\\1", results_fl[f])
+    } else {
+      micro_res = sub(".*_(.*)_anlm.tsv", "\\1", results_fl[f])
+    }
+
     results_list[[f]] = as.data.frame(fread(results_fl[f]))
-    micro_res = sub(".*_(.*)_anlm.tsv", "\\1", results_fl[f])
     results_list[[f]]$micro = micro_res
     # results = rbind(results, results_tmp)
 }

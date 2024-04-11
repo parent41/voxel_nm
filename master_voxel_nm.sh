@@ -440,7 +440,8 @@ module load ffmpeg
 
 #region Percentage of abnormal voxels per tissue type
 
-micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM', 'jacobians_abs', 'jacobians_rel')
+micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
+micro=('QSM' 'jacobians_abs')
 
 for m in ${!micro[@]}
 do
