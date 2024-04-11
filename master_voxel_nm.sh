@@ -450,11 +450,12 @@ do
             ../subj_zscores_common_all/tmp/label_c${i}_FA.tsv \
             ../subj_zscores_common_all/results/zscores_c${i}_${micro[m]}_anlm.tsv \
             ../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt \
+            ../subj_zscores_common_all/tmp/ids_label_c${i}_FA.txt \
             ./results/raw/perc_abnormal_c${i}_${micro[m]}_anlm.tsv
     done
 done > joblist_perc_abnormal_vox
 
-qbatch -c 4 -w 3:00:00 joblist_perc_abnormal_vox
+qbatch -c 4 -w 2:15:00 joblist_perc_abnormal_vox
 
 #endregion
 

@@ -8,25 +8,17 @@ args = commandArgs(trailingOnly=TRUE)
 
 # args = c()
 # args[1] = "FA"
-# args[2] = "../subj_zscores_common_all/tmp/label_c0_FA.tsv"
-# args[3] = "../subj_zscores_common_all/results/zscores_c0_FA_anlm.tsv"
+# args[2] = "../subj_zscores_common_all/tmp/label_c2_FA.tsv"
+# args[3] = "../subj_zscores_common_all/results/zscores_c2_FA_anlm.tsv"
 # args[4] = "../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt"
-# args[5] = "./results/raw/perc_abnormal_dx_FA_anlm.tsv"
+# args[5] = "../subj_zscores_common_all/tmp/ids_label_c2_FA.txt"
+# args[6] = "./results/test.tsv"
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
 
-# names = c("FA", "MD", "ICVF", "ISOVF", "OD", "T2star", "QSM")
-
-# Load tab data
-print("Load tab data")
-inclusions = as.data.frame(fread(args[4]))
-colnames(inclusions) = c("ID")
-
-demo = as.data.frame(fread("../../../UKB/tabular/df_demo/UKBB_demo_wider.tsv"))
-demo = subset(demo, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when_attended_assessment_centre_21003_0'))
-colnames(demo) = c("ID", "Sex", "Age")
-demo = merge(inclusions, demo, by="ID", all.x=TRUE)
+ids = as.data.frame(fread(args[5]))
+ids = ids$V1
 
 # Function to count values above zscore thresholds per label
 perc_values_above_thresholds <- function(id, micro_id, label_id) {
@@ -57,51 +49,17 @@ micro = as.data.frame(fread(args[3], header=TRUE))
 
 print(dim(label))
 print(dim(micro))
-print(dim(inclusions))
+print(length(ids))
 
 print("Run for each ID")
 
-results = perc_values_above_thresholds(demo$ID[1], as.numeric(micro[1,]), as.numeric(label[1,]))
 
-for (id in 2:nrow(micro)) {
-  print(demo$ID[id])
-  id_result = perc_values_above_thresholds(demo$ID[id], as.numeric(micro[id,]), as.numeric(label[id,]))
-
-  results = rbind(results, id_result)
+results_list = list()
+for (id in 1:nrow(micro)) {
+  print(ids[id])
+  results_list[[id]] = perc_values_above_thresholds(ids[id], as.numeric(micro[id,]), as.numeric(label[id,]))
 }
 
-fwrite(as.data.frame(results), args[5], row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")
+results = do.call(rbind, results_list)
 
-
-
-
-# dx = as.data.frame(fread("../../../UKB/QC/exclusion_lists/dx_single.csv"))
-# colnames(dx) = c("Stroke", "TIA", "Subdural_H", "Subarachnoid_H", "Head_trauma", "Psychiatric", "Infection_nerv", "Abscess", 
-#                 "Encephalitis", "Meningitis", "Chronic_neurol", "Motor_neuron_disease", "MS", "PD", "Cog_imp", "Epilepsy",
-#                 "Head_injury", "Alcoholism", "Opioid_dep", "Other_dep", "Other_neurol", "Haemorrhage", "Ischaemic_stroke", "Fracture")
-
-# # Max number of dx for one person
-# max_occurrences <- function(row) {
-#   max(table(row))
-# }
-# max_counts <- apply(dx, 1, max_occurrences)
-# max_dx <- max(max_counts)
-
-# # Merge demo and dx
-# demo$dx_1 = NA
-# demo$dx_2 = NA
-
-# for (c in 1:ncol(dx)) {
-#   # print(colnames(dx)[c])
-#   for (id in 1:nrow(dx)) {
-#     # print(dx[id,c])
-#     row_demo = which(demo$ID %in% dx[id,c])
-#     if (length(row_demo) > 0) {
-#       if (is.na(demo$dx_1[row_demo])==TRUE) {
-#         demo$dx_1[row_demo] = colnames(dx)[c]
-#       } else {
-#         demo$dx_2[row_demo] = colnames(dx)[c]
-#       }
-#     }
-#   }
-# }
+fwrite(as.data.frame(results), args[6], row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")

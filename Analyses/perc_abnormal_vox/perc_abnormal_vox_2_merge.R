@@ -6,45 +6,25 @@ library(ggplot2)
 library(data.table)
 library(ggpubr)
 
-
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
 
 names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "jacobians_rel", "jacobians_abs")
 
-# Load tab data
-print("Load tab data")
-inclusions = as.data.frame(fread("../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt"))
-colnames(inclusions) = "ID"
-
-demo = as.data.frame(fread("../../../UKB/tabular/df_demo/UKBB_demo_wider.tsv"))
-demo = subset(demo, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when_attended_assessment_centre_21003_0'))
-colnames(demo) = c("ID", "Sex", "Age")
-demo = merge(inclusions, demo, by="ID", all.x=TRUE)
-
-df_dx = as.data.frame(fread("../../../WMH_micro_spatial/Analyses_nm/predict_firstocc_categ/results/firstocc_categ.tsv"))
-
-no_dx_ids = as.data.frame(inclusions$ID[!(inclusions$ID %in% df_dx$ID)])
-colnames(no_dx_ids) = "ID"
-df_dx = merge(no_dx_ids, df_dx, by="ID", all=TRUE)
-
-df = merge(demo, df_dx, all.y=TRUE, by="ID")
-
 # Load perc abnormal vox results
 
 results_fl = list.files("./results/raw", pattern="*", full.names = TRUE)
 
-results = as.data.frame(fread(results_fl[1]))
-micro_res = sub(".*_(.*)_anlm.tsv", "\\1", results_fl[1])
-results$micro = micro_res
-
-for (f in 2:length(results_fl)) {
+results_list = list()
+for (f in 1:length(results_fl)) {
     print(results_fl[f])
-    results_tmp = as.data.frame(fread(results_fl[f]))
+    results_list[[f]] = as.data.frame(fread(results_fl[f]))
     micro_res = sub(".*_(.*)_anlm.tsv", "\\1", results_fl[f])
-    results_tmp$micro = micro_res
-    results = rbind(results, results_tmp)
+    results_list[[f]]$micro = micro_res
+    # results = rbind(results, results_tmp)
 }
+
+results <- do.call(rbind, results_list)
 
 results = results[order(results$ID),]
 
@@ -79,55 +59,4 @@ results <- as.data.frame(results %>%
 results$label_value[is.na(results$label_value)] <- 10
 results$perc_vox_above_thresh[results$label_value == 10] = results$count_vox_above_thresh[results$label_value == 10] / results$count_vox_label[results$label_value == 10]
 
-fwrite(results, "./results/results_tmp.tsv", row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")
-
-# Remove dx with prevalence less than 30
-
-dx_prev = as.data.frame(table(demo_dx$dx_1))
-dx_prev_order = dx_prev[order(-dx_prev$Freq),]
-dx_prev_order = subset(dx_prev_order, Freq >= 30, select="Var1")
-dx_prev_order = as.character(dx_prev_order$Var1)
-dx_toremove = as.character(dx_prev[which(dx_prev$Freq < 30), 1])
-
-demo_dx_tobind = subset(demo_dx, is.na(dx_2) == FALSE)
-demo_dx_tobind$dx_1 = demo_dx_tobind$dx_2
-demo_dx_tobind = demo_dx_tobind[,c(1,2,3,4)]
-colnames(demo_dx_tobind)[ncol(demo_dx_tobind)] = "dx"
-demo_dx_tobind$dx_num = 2
-
-demo_dx_prev = demo_dx
-demo_dx_prev = demo_dx_prev[,c(1,2,3,4)]
-colnames(demo_dx_prev)[ncol(demo_dx_prev)] = "dx"
-demo_dx_prev$dx_num = 1
-
-demo_dx_prev = rbind(demo_dx_prev, demo_dx_tobind)
-demo_dx_prev$dx[which(demo_dx_prev$dx %in% dx_toremove)] <- NA
-demo_dx_prev = subset(demo_dx_prev, is.na(dx) == FALSE)
-
-ids_toremove = inclusions_dx$ID[-which(inclusions_dx$ID %in% demo_dx_prev$ID)]
-
-# Merge results with dx
-
-results$dx = NA
-results = results[-which(results$ID %in% ids_toremove),]
-
-results_dx = results
-for (i in 1:nrow(demo_dx_prev)) {
-  print(demo_dx_prev$ID[i])
-  print(demo_dx_prev$dx_num[i])
-  print(demo_dx_prev$dx[i])
-
-  if (demo_dx_prev$dx_num[i] == 1) {
-    results_dx[which(results_dx$ID == demo_dx_prev$ID[i]),]$dx <- demo_dx_prev$dx[i]
-  } else if (demo_dx_prev$dx_num[i] == 2) {
-    # Important: subjects with two neurological dx appear twice
-    results_tmp = results_dx[which(results_dx$ID == demo_dx_prev$ID[i]),]
-    results_tmp$dx = demo_dx_prev$dx[i]
-    results_dx = rbind(results_dx, results_tmp)
-  }
-}
-
-results_dx$dx[is.na(results_dx$dx)] <- "HC"
-
-fwrite(results_dx, "./results/final_results_dx.tsv", col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
-
+fwrite(results, "./results/results.tsv", row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")
