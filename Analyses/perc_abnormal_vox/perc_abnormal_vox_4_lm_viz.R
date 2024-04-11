@@ -9,8 +9,8 @@ library(scales)
 # install.packages(c("fmsb"))
 # install.packages("devtools")
 # devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE, lib="/gpfs/fs1/home/m/mchakrav/parent41/R/x86_64-pc-linux-gnu-library/4.1")
-library(fmsb)
-library(ggradar)
+# library(fmsb)
+# library(ggradar)
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
@@ -18,12 +18,99 @@ tissue_abn = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 
 
 names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
 
-# Load results
-results_dx = as.data.frame(fread("./results/final_results_dx.tsv"))
+# Load data
+results = as.data.frame(fread("./results/results.tsv"))
+inclusions = as.data.frame(fread("../../../WMH_micro_spatial/QC/inclusions_without_excluding_dx_new.txt"))
+colnames(inclusions) = "ID"
 
-results_dx[,c(2,3,7,8)] = as.data.frame(lapply(results_dx[,c(2,3,7,8)], as.factor))
+demo = as.data.frame(fread("../../../UKB/tabular/df_demo/UKBB_demo_wider.tsv"))
+demo = subset(demo, InstanceID == 2, select=c('SubjectID', 'Sex_31_0', 'Age_when_attended_assessment_centre_21003_0'))
+colnames(demo) = c("ID", "Sex", "Age")
+demo = merge(inclusions, demo, by="ID", all.x=TRUE)
 
-dx_prev_order = as.data.frame(table(results_dx$dx))
+df_dx = as.data.frame(fread("../../../WMH_micro_spatial/Analyses_nm/predict_firstocc_categ/results/firstocc_categ.tsv"))
+
+no_dx_ids = as.data.frame(inclusions$ID[!(inclusions$ID %in% df_dx$ID)])
+colnames(no_dx_ids) = "ID"
+df_dx = merge(no_dx_ids, df_dx, by="ID", all=TRUE)
+
+df = merge(demo, df_dx, all.y=TRUE, by="ID")
+df[,c(2,5,6,9,10)] = as.data.frame(lapply(df[,c(2,5,6,9,10)], as.factor))
+
+results[,c(2,3,7)] = as.data.frame(lapply(results[,c(2,3,7)], as.factor))
+
+icd_codes_list <- readRDS("../../../WMH_micro_spatial/Analyses_nm/predict_firstocc_categ/results/icd_codes_list.rds")
+
+lm_results = as.data.frame(fread("./results/lm_results.tsv"))
+lm_results[,c(1,2,3,4)] = as.data.frame(lapply(lm_results[,c(1,2,3,4)], as.factor))
+
+# Plot beta coefficients and pvalues
+
+plot_beta_pval = function(dx_name, icd_list, name) {
+    color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
+    n_dx = length(unique(df$ID[which(df$icd_code %in% icd_list)]))
+
+    df_toplot = subset(lm_results, dx == dx_name)
+
+    plot_pval = ggplot(df_toplot, aes(x=Label, y=pval_group, color=factor(Micro, levels=names))) + 
+          geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          scale_color_manual(name="Micro", values=color_scale) + 
+          scale_x_discrete(labels = tissue_all[c(seq(3,10))], name="") +
+          scale_y_continuous(limits = c(0, 0.2), breaks = c(0.01, 0.05, 0.1, 0.2), oob=squish, name="\n\nP-value") +
+          geom_hline(yintercept = 0.01, alpha=1) + 
+          geom_hline(yintercept = 0.05, alpha=0.7) + 
+          geom_hline(yintercept = 0.1, alpha=0.4) + 
+          geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
+          facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          theme_classic() + 
+          theme(text = element_text(size=15),
+                plot.title = element_text(hjust = 0.5),
+                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+                panel.spacing.x = unit(1, "cm"))
+    
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=names))) + 
+          geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          scale_color_manual(name="Micro", values=color_scale) + 
+          scale_x_discrete(labels = tissue_all[c(seq(3,10))], name="") +
+          scale_y_continuous(limits = c(-1,1), breaks = seq(-1, 1, by=0.2), oob=squish, name="\n\nStandardized Beta") +
+          geom_hline(yintercept = 0, alpha=1) + 
+          geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
+          facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          ggtitle(paste0(dx_name, " (n = ",n_dx,")")) +
+          theme_classic() + 
+          theme(text = element_text(size=15),
+                plot.title = element_text(hjust = 0.5),
+                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+                panel.spacing.x = unit(1, "cm"))
+      
+    wrap_plots(plot_betas, plot_pval, ncol=1)
+    ggsave(name, width=5*(length(unique(df_toplot$Threshold))), height=10)
+    print(name)
+}
+
+for (d in 2:length(icd_codes_list)) {
+  print(names(icd_codes_list)[d])
+
+  plot_beta_pval(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],".png"))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dx_prev_order = as.data.frame(table(results$dx))
 dx_prev_order = dx_prev_order[order(-dx_prev_order$Freq),]
 dx_prev_order$Freq = dx_prev_order$Freq / 147
 dx_prev_order = subset(dx_prev_order, Freq >= 30, select="Var1")
@@ -34,18 +121,18 @@ dx_prev_order = as.character(dx_prev_order$Var1)
 ttest_results = as.data.frame(matrix(ncol=6, nrow=0))
 colnames(ttest_results) = c("label_value", "threshold", "micro", "dx", "tval", "pval")
 
-comparison_levels <- setdiff(levels(results_dx$dx), "HC")
+comparison_levels <- setdiff(levels(results$dx), "HC")
 
 c=1
-for (l in levels(results_dx$label_value)) {
+for (l in levels(results$label_value)) {
   print(l)
-  for (t in levels(results_dx$threshold)) {
+  for (t in levels(results$threshold)) {
     print(t)
-    for (m in levels(results_dx$micro)) {
+    for (m in levels(results$micro)) {
       print(m)
       for (d in comparison_levels) {
         print(d)
-        ttest_df = subset(results_dx, label_value == l & threshold == t & micro == m & dx %in% c(d, "HC"))
+        ttest_df = subset(results, label_value == l & threshold == t & micro == m & dx %in% c(d, "HC"))
         ttest = t.test(perc_vox_above_thresh ~ dx, data = ttest_df, alternative="less")
         ttest_results[c,] = c(l, t, m, d, ttest$statistic, ttest$p.value)
 
@@ -75,7 +162,7 @@ dx_point_pval = function(df, name) {
   colnames(df)[ncol(df)] = "pval"
 
   color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
-  n_dx = length(unique(results_dx[which(results_dx$dx == as.character(unique(df$dx))),1]))
+  n_dx = length(unique(results[which(results$dx == as.character(unique(df$dx))),1]))
 
   plot = ggplot(df %>% filter(label_value != "9"),
           aes(x=label_value, y=pval, color=factor(micro, levels=names))) + 
@@ -86,7 +173,7 @@ dx_point_pval = function(df, name) {
           geom_hline(yintercept = 0.01, alpha=1) + 
           geom_hline(yintercept = 0.05, alpha=0.7) + 
           geom_hline(yintercept = 0.1, alpha=0.4) + 
-          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results_dx$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
           ggtitle(paste0(as.character(unique(df$dx)), " (n = ",n_dx,")")) +
           theme(text = element_text(size=15),
                 plot.title = element_text(hjust = 0.5),
@@ -115,7 +202,7 @@ df_radar_pval = function(df, name) {
   colnames(df)[ncol(df)] = "pval"
 
   color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
-  n_dx = length(unique(results_dx[which(results_dx$dx == as.character(unique(df$dx))),1]))
+  n_dx = length(unique(results[which(results$dx == as.character(unique(df$dx))),1]))
 
   df_wide = df[,-which(colnames(df) %in% "dx")]
   df_wide = spread(df_wide, key=label_value, value=pval)
@@ -156,27 +243,27 @@ for (d in levels(ttest_results$dx)) {
 
 # Bar plots: one plot by micro and threshold (across dx and regions)
 
-for (i in 1:length(levels(results_dx$threshold))) {
-  print(levels(results_dx$threshold)[i])
+for (i in 1:length(levels(results$threshold))) {
+  print(levels(results$threshold)[i])
 
   plots = list()
   for (n in 1:length(names)) {
-    df_tmp = results_dx %>% filter(threshold == levels(results_dx$threshold)[i] & micro == names[n] & label_value != "9")
+    df_tmp = results %>% filter(threshold == levels(results$threshold)[i] & micro == names[n] & label_value != "9")
     dx_prev_tmp = as.data.frame(table(df_tmp$dx) / nrow(df_tmp %>% filter(ID == df_tmp$ID[1])))
     dx_prev_tmp = dx_prev_tmp[order(-dx_prev_tmp$Freq),]
     legend_labels = paste0(as.character(dx_prev_tmp$Var1), " (n=",dx_prev_tmp$Freq, ")")
 
-    plots[[n]] = ggplot(results_dx %>% filter(threshold == levels(results_dx$threshold)[i] & micro == names[n] & label_value != "9"),
+    plots[[n]] = ggplot(results %>% filter(threshold == levels(results$threshold)[i] & micro == names[n] & label_value != "9"),
           aes(x=label_value, y=perc_vox_above_thresh, fill=factor(dx, levels=c(dx_prev_order)))) + 
           geom_boxplot(outlier.shape = NA) + 
           scale_fill_discrete(name="Diagnosis", labels=legend_labels) + 
           scale_x_discrete(labels = tissue_all[c(seq(3,8),10)], name="") + 
-          scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results_dx$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
           ggtitle(paste0(names[n])) +
           theme(text = element_text(size=20), plot.title = element_text(hjust = 0.5))
-    ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results_dx$threshold)[i],"_",names[n],".png"), width=20, height=5)
+    ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results$threshold)[i],"_",names[n],".png"), width=20, height=5)
   }
 
   wrap_plots(plots, ncol=1)
-  ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results_dx$threshold)[i],"_allmicro.png"), width=20, height=(5*length(names)))
+  ggsave(paste0("./visualization/perc_abn_vox_Z",levels(results$threshold)[i],"_allmicro.png"), width=20, height=(5*length(names)))
 }
