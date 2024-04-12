@@ -15,8 +15,9 @@ library(scales)
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
 tissue_abn = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
+tissue_toplot = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_WM')
 
-names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
+names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "jacobians_rel", "jacobians_abs")
 
 # Load data
 results = as.data.frame(fread("./results/results.tsv"))
@@ -47,16 +48,23 @@ lm_results[,c(1,2,3,4)] = as.data.frame(lapply(lm_results[,c(1,2,3,4)], as.facto
 # Plot beta coefficients and pvalues
 
 plot_beta_pval = function(dx_name, icd_list, name) {
-    color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
+    color_scale = c(MD = "#04319E", ISOVF = "#8298CF",
+                    FA = "#2B520B" , ICVF= "#448312", OD="#A2C189",
+                    T2star="#D36108", QSM="#E9B084",
+                    jacobians_rel="#5900cb", jacobians_abs="#893cef")
     n_dx = length(unique(df$ID[which(df$icd_code %in% icd_list)]))
 
-    df_toplot = subset(lm_results, dx == dx_name)
+    df_toplot = subset(lm_results, dx == dx_name & Label %in% c(3,4,5,6,7,10))
 
-    plot_pval = ggplot(df_toplot, aes(x=Label, y=pval_group, color=factor(Micro, levels=names))) + 
-          geom_point(position = position_jitter(w = 0.4, h = 0)) +
+    df_toplot$fdr_group = p.adjust(df_toplot$pval_group, method="fdr")
+
+    plot_pval = ggplot(df_toplot, aes(x=Label, y=fdr_group, color=factor(Micro, levels=names), group = factor(Micro, levels=names))) + 
+          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          geom_point(position = position_dodge(0.8)) +
+          # geom_line(position = position_dodge(0.8), alpha=0.2) +
           scale_color_manual(name="Micro", values=color_scale) + 
-          scale_x_discrete(labels = tissue_all[c(seq(3,10))], name="") +
-          scale_y_continuous(limits = c(0, 0.2), breaks = c(0.01, 0.05, 0.1, 0.2), oob=squish, name="\n\nP-value") +
+          scale_x_discrete(labels = tissue_toplot, name="") +
+          scale_y_continuous(limits = c(0, 0.2), breaks = c(0.01, 0.05, 0.1, 0.2), oob=squish, name="\n\nP-value (FDR-corrected)") +
           geom_hline(yintercept = 0.01, alpha=1) + 
           geom_hline(yintercept = 0.05, alpha=0.7) + 
           geom_hline(yintercept = 0.1, alpha=0.4) + 
@@ -69,10 +77,68 @@ plot_beta_pval = function(dx_name, icd_list, name) {
                 axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
                 panel.spacing.x = unit(1, "cm"))
     
-    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=names))) + 
-          geom_point(position = position_jitter(w = 0.4, h = 0)) +
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=names), group = factor(Micro, levels=names))) + 
+          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          geom_point(position = position_dodge(0.8)) +
+          # geom_line(position = position_dodge(0.8), alpha=0.2) +
           scale_color_manual(name="Micro", values=color_scale) + 
-          scale_x_discrete(labels = tissue_all[c(seq(3,10))], name="") +
+          scale_x_discrete(labels = tissue_toplot, name="") +
+          scale_y_continuous(limits = c(-1,1), breaks = seq(-1, 1, by=0.2), oob=squish, name="\n\nStandardized Beta") +
+          geom_hline(yintercept = 0, alpha=1) + 
+          geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
+          facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          ggtitle(paste0(dx_name, " (n = ",n_dx,")")) +
+          theme_classic() + 
+          theme(text = element_text(size=15),
+                plot.title = element_text(hjust = 0.5),
+                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+                panel.spacing.x = unit(1, "cm"))
+      
+    wrap_plots(plot_betas, plot_pval, ncol=1)
+    ggsave(name, width=6*(length(unique(df_toplot$Threshold))), height=10)
+    print(name)
+}
+
+
+plot_beta_pval_nodbm = function(dx_name, icd_list, name) {
+    color_scale = c(MD = "#04319E", ISOVF = "#8298CF",
+                    FA = "#2B520B" , ICVF= "#448312", OD="#A2C189",
+                    T2star="#D36108", QSM="#E9B084",
+                    jacobians_rel="#5900cb", jacobians_abs="#893cef")
+    n_dx = length(unique(df$ID[which(df$icd_code %in% icd_list)]))
+
+    micro_list = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
+
+    df_toplot = subset(lm_results, dx == dx_name & Label %in% c(3,4,5,6,7,10) & Micro %in% micro_list)
+
+    df_toplot$fdr_group = p.adjust(df_toplot$pval_group, method="fdr")
+
+    plot_pval = ggplot(df_toplot, aes(x=Label, y=fdr_group, color=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
+          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          geom_point(position = position_dodge(0.8)) +
+          # geom_line(position = position_dodge(0.8), alpha=0.2) +
+          scale_color_manual(name="Micro", values=color_scale) + 
+          scale_x_discrete(labels = tissue_toplot, name="") +
+          scale_y_continuous(limits = c(0, 0.2), breaks = c(0.01, 0.05, 0.1, 0.2), oob=squish, name="\n\nP-value (FDR-corrected)") +
+          geom_hline(yintercept = 0.01, alpha=1) + 
+          geom_hline(yintercept = 0.05, alpha=0.7) + 
+          geom_hline(yintercept = 0.1, alpha=0.4) + 
+          geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
+          facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          theme_classic() + 
+          theme(text = element_text(size=15),
+                plot.title = element_text(hjust = 0.5),
+                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+                panel.spacing.x = unit(1, "cm"))
+    
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
+          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
+          geom_point(position = position_dodge(0.8)) +
+          # geom_line(position = position_dodge(0.8), alpha=0.2) +
+          scale_color_manual(name="Micro", values=color_scale) + 
+          scale_x_discrete(labels = tissue_toplot, name="") +
           scale_y_continuous(limits = c(-1,1), breaks = seq(-1, 1, by=0.2), oob=squish, name="\n\nStandardized Beta") +
           geom_hline(yintercept = 0, alpha=1) + 
           geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
@@ -90,10 +156,12 @@ plot_beta_pval = function(dx_name, icd_list, name) {
     print(name)
 }
 
+
 for (d in 2:length(icd_codes_list)) {
   print(names(icd_codes_list)[d])
 
-  plot_beta_pval(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],".png"))
+  try(plot_beta_pval(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],".png")),silent=TRUE)
+  try(plot_beta_pval_nodbm(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],"_nodbm.png")), silent=TRUE)
 }
 
 
@@ -107,92 +175,6 @@ for (d in 2:length(icd_codes_list)) {
 
 
 
-
-
-
-dx_prev_order = as.data.frame(table(results$dx))
-dx_prev_order = dx_prev_order[order(-dx_prev_order$Freq),]
-dx_prev_order$Freq = dx_prev_order$Freq / 147
-dx_prev_order = subset(dx_prev_order, Freq >= 30, select="Var1")
-dx_prev_order = as.character(dx_prev_order$Var1)
-
-# One-sided t-test of dx > controls
-
-ttest_results = as.data.frame(matrix(ncol=6, nrow=0))
-colnames(ttest_results) = c("label_value", "threshold", "micro", "dx", "tval", "pval")
-
-comparison_levels <- setdiff(levels(results$dx), "HC")
-
-c=1
-for (l in levels(results$label_value)) {
-  print(l)
-  for (t in levels(results$threshold)) {
-    print(t)
-    for (m in levels(results$micro)) {
-      print(m)
-      for (d in comparison_levels) {
-        print(d)
-        ttest_df = subset(results, label_value == l & threshold == t & micro == m & dx %in% c(d, "HC"))
-        ttest = t.test(perc_vox_above_thresh ~ dx, data = ttest_df, alternative="less")
-        ttest_results[c,] = c(l, t, m, d, ttest$statistic, ttest$p.value)
-
-        c = c+1    
-      }
-    }
-  }
-}
-
-
-ttest_results[,c(1,2,3,4)] = as.data.frame(lapply(ttest_results[,c(1,2,3,4)], as.factor))
-ttest_results[,c(5,6)] = as.data.frame(lapply(ttest_results[,c(5,6)], as.numeric))
-
-ttest_results$fdr = p.adjust(ttest_results$pval, method="fdr")
-
-fwrite(ttest_results, "./results/ttest_results.tsv", col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
-
-ttest_results = as.data.frame(fread("./results/ttest_results.tsv"))
-ttest_results[,c(1,2,3,4)] = as.data.frame(lapply(ttest_results[,c(1,2,3,4)], as.factor))
-ttest_results[,c(5,6,7)] = as.data.frame(lapply(ttest_results[,c(5,6,7)], as.numeric))
-
-# Point plots for p-values: One plot by dx
-
-dir.create("./visualization/point_within_dx", showWarnings=FALSE)
-
-dx_point_pval = function(df, name) {
-  colnames(df)[ncol(df)] = "pval"
-
-  color_scale = c(MD = "#04319E", ISOVF = "#8298CF", FA = "#2B520B" , ICVF= "#448312", OD="#A2C189", T2star="#D36108", QSM="#E9B084")
-  n_dx = length(unique(results[which(results$dx == as.character(unique(df$dx))),1]))
-
-  plot = ggplot(df %>% filter(label_value != "9"),
-          aes(x=label_value, y=pval, color=factor(micro, levels=names))) + 
-          geom_point(position = position_jitter(w = 0.2, h = 0)) +
-          scale_color_manual(name="Micro", values=color_scale) + 
-          scale_x_discrete(labels = tissue_all[c(seq(3,8),10)], name="") +
-          scale_y_continuous(limits = c(0, 0.2), breaks = seq(0, 0.2, by=0.01), oob=squish) +
-          geom_hline(yintercept = 0.01, alpha=1) + 
-          geom_hline(yintercept = 0.05, alpha=0.7) + 
-          geom_hline(yintercept = 0.1, alpha=0.4) + 
-          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
-          ggtitle(paste0(as.character(unique(df$dx)), " (n = ",n_dx,")")) +
-          theme(text = element_text(size=15),
-                plot.title = element_text(hjust = 0.5),
-                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))
-    ggsave(name, width=5, height=5)
-    print(name)
-
-    return(plot)
-}
-
-for (d in levels(ttest_results$dx)) {
-  print(d)
-  for (t in levels(ttest_results$threshold)) {
-    print(t)
-    df_toplot = ttest_results %>% filter(dx == d, threshold == t)
-    plot_pval = dx_point_pval(df_toplot %>% select(c("label_value", "micro", "dx", "pval")), paste0("./visualization/point_within_dx/pval_",d,"_thresh_",t,".png"))
-    plot_fdr = dx_point_pval(df_toplot %>% select(c("label_value", "micro","dx", "fdr")), paste0("./visualization/point_within_dx/fdr_",d,"_thresh_",t,".png"))
-  }
-}
 
 # Radar plots for p-values: One plot by dx
 
