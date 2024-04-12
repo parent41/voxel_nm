@@ -440,6 +440,8 @@ module load ffmpeg
 
 #region Percentage of abnormal voxels per tissue type
 
+# Calculate % for each subject
+
 micro=('FA' 'MD' 'ICVF' 'ISOVF' 'OD' 'T2star' 'QSM' 'jacobians_abs' 'jacobians_rel')
 micro=('QSM' 'jacobians_abs')
 
@@ -457,6 +459,12 @@ do
 done > joblist_perc_abnormal_vox
 
 qbatch -c 4 -w 2:15:00 joblist_perc_abnormal_vox
+
+# Run LM
+
+echo Rscript ./perc_abnormal_vox_3_lm.R > joblist_perc_abnormal_vox_3_lm
+
+qbatch -c 1 -w 2:00:00 joblist_perc_abnormal_vox_3_lm
 
 #endregion
 

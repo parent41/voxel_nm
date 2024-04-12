@@ -16,7 +16,7 @@ tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', '
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
 tissue_abn = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
 
-names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
+names = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM", "jacobians_rel", "jacobians_abs")
 
 # Load data
 results = as.data.frame(fread("./results/results.tsv"))
@@ -117,13 +117,4 @@ for (dx in 2:length(icd_codes_list)) {
 
 res_dx = do.call(rbind, res_dx_list)
 fwrite(res_dx, "./results/lm_results.tsv", row.names=FALSE, col.names=TRUE, quote=FALSE, sep="\t")
-
-
-
-
-
-
-
-
-
 
