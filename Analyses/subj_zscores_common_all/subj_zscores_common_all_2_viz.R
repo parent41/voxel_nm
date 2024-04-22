@@ -16,7 +16,7 @@ args = commandArgs(trailingOnly=TRUE)
 dir.create("./visualization/indiv", showWarnings=FALSE)
 
 # args = c()
-# args[1] = 32
+# args[1] = 2
 
 num_chunk = as.numeric(args[1])
 
@@ -207,6 +207,166 @@ zscore_png = function(input, output, up_thresh) {
     print(final_plot)
     dev.off()
     print(paste0(output, "_zscore_max",up_thresh,".png"))
+}
+
+zscore_png_thresh = function(input, output, up_thresh) {
+    input_id = sub(".*/(\\d{7}).*", "\\1", input)
+    # print(input_id)
+
+    # Load data for slices across different axes
+    slices = list()
+    slices[[1]] = c(0,20) # Slices for z-axis
+    slices[[2]] = c(-5, -30) # Slices for x-axis
+    slices[[3]] = c(-20) # Slices for y-axis
+
+    slices_axes = c("z", "x", "y")
+
+    n_slices = 0
+
+    flair_final = tibble(matrix(nrow = 0, ncol = 11))
+    contour_final = tibble(matrix(nrow = 0, ncol = 11))
+    micro_final = tibble(matrix(nrow = 0, ncol = 12))
+    label_final = tibble(matrix(nrow = 0, ncol = 11))
+    label_ukb_final = tibble(matrix(nrow = 0, ncol = 11))
+
+    for (a in 1:length(slices)) {
+        # print(slices_axes[a])
+        slices_num = seq(n_slices + 1, n_slices + length(slices[[a]]))
+
+        # Load image data
+        flair = prepare_masked_anatomy(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-",input_id,"_ses-2_flair_UKB.mnc"), mask_path, slice_axis = slices_axes[a], slices[[a]])
+        ifelse(slices_axes[a] == "x", flair$anatomy_df$x_toplot <- flair$anatomy_df$y, ifelse(slices_axes[a] == "y", flair$anatomy_df$x_toplot <- flair$anatomy_df$x, ifelse(slices_axes[a] == "z", flair$anatomy_df$x_toplot <- flair$anatomy_df$x, NA)))
+        ifelse(slices_axes[a] == "x", flair$anatomy_df$y_toplot <- flair$anatomy_df$z, ifelse(slices_axes[a] == "y", flair$anatomy_df$y_toplot <- flair$anatomy_df$z, ifelse(slices_axes[a] == "z", flair$anatomy_df$y_toplot <- flair$anatomy_df$y, NA)))
+        flair$anatomy_df$slice_index = flair$anatomy_df$slice_index + n_slices
+        flair_final = rbind(flair_final, flair$anatomy_df)
+
+        contour = prepare_label_contours(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-", input_id,"_ses-2_Label_UKB.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
+        ifelse(slices_axes[a] == "x", contour$contours_df$x_toplot <- contour$contours_df$y, ifelse(slices_axes[a] == "y", contour$contours_df$x_toplot <- contour$contours_df$x, ifelse(slices_axes[a] == "z", contour$contours_df$x_toplot <- contour$contours_df$x, NA)))
+        ifelse(slices_axes[a] == "x", contour$contours_df$y_toplot <- contour$contours_df$z, ifelse(slices_axes[a] == "y", contour$contours_df$y_toplot <- contour$contours_df$z, ifelse(slices_axes[a] == "z", contour$contours_df$y_toplot <- contour$contours_df$y, NA)))
+        contour$contours_df$slice_index = contour$contours_df$slice_index + n_slices
+        contour_final = rbind(contour_final, contour$contours_df)
+
+        micro = prepare_masked_anatomy(paste0(input, "_",names[1],".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+        ifelse(slices_axes[a] == "x", micro$anatomy_df$x_toplot <- micro$anatomy_df$y, ifelse(slices_axes[a] == "y", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, ifelse(slices_axes[a] == "z", micro$anatomy_df$x_toplot <- micro$anatomy_df$x, NA)))
+        ifelse(slices_axes[a] == "x", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "y", micro$anatomy_df$y_toplot <- micro$anatomy_df$z, ifelse(slices_axes[a] == "z", micro$anatomy_df$y_toplot <- micro$anatomy_df$y, NA)))
+        micro$anatomy_df$slice_index = micro$anatomy_df$slice_index + n_slices
+
+        micro$anatomy_df$Micro = names[1]
+        for (n in 2:length(names)) {
+            micro_tmp = prepare_masked_anatomy(paste0(input, "_",names[n],".mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]])
+            ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$y, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$x_toplot <- micro_tmp$anatomy_df$x, NA)))
+            ifelse(slices_axes[a] == "x", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "y", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$z, ifelse(slices_axes[a] == "z", micro_tmp$anatomy_df$y_toplot <- micro_tmp$anatomy_df$y, NA)))
+            micro_tmp$anatomy_df$slice_index = micro_tmp$anatomy_df$slice_index + n_slices
+
+            micro_tmp$anatomy_df$Micro = names[n]
+            micro$anatomy_df = rbind(micro$anatomy_df, micro_tmp$anatomy_df)
+        }
+        micro$anatomy_df$Micro = as.factor(micro$anatomy_df$Micro)
+        micro_final = rbind(micro_final, micro$anatomy_df)
+
+        label = prepare_masked_anatomy(paste0("../../../WMH_micro_spatial/maps_UKB_space/sub-", input_id,"_ses-2_Label_UKB.mnc"), mask_path, slice_axis = slices_axes[a], slices[[a]])
+        ifelse(slices_axes[a] == "x", label$anatomy_df$x_toplot <- label$anatomy_df$y, ifelse(slices_axes[a] == "y", label$anatomy_df$x_toplot <- label$anatomy_df$x, ifelse(slices_axes[a] == "z", label$anatomy_df$x_toplot <- label$anatomy_df$x, NA)))
+        ifelse(slices_axes[a] == "x", label$anatomy_df$y_toplot <- label$anatomy_df$z, ifelse(slices_axes[a] == "y", label$anatomy_df$y_toplot <- label$anatomy_df$z, ifelse(slices_axes[a] == "z", label$anatomy_df$y_toplot <- label$anatomy_df$y, NA)))
+        label$anatomy_df$slice_index = label$anatomy_df$slice_index + n_slices
+        label$anatomy_df$intensity = round(label$anatomy_df$intensity,1)
+        label_final = rbind(label_final, label$anatomy_df)
+
+        # label_ukb = prepare_label_contours(paste0("../../../UKB/temporary_template/bison_ukbb/RF0_ukbb_bison_Label_2mm.mnc"), mask_path, slice_axis = slices_axes[a], slice_axis_coordinates = slices[[a]], labels = seq(3,9))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$y, ifelse(slices_axes[a] == "y", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, ifelse(slices_axes[a] == "z", label_ukb$contours_df$x_toplot <- label_ukb$contours_df$x, NA)))
+        # ifelse(slices_axes[a] == "x", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "y", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$z, ifelse(slices_axes[a] == "z", label_ukb$contours_df$y_toplot <- label_ukb$contours_df$y, NA)))
+        # label_ukb$contours_df$slice_index = label_ukb$contours_df$slice_index + n_slices
+        # label_ukb_final = rbind(label_ukb_final, label_ukb$contours_df)
+
+        # Keep track of total number of slices
+        n_slices = n_slices + length(slices[[a]])
+    }
+
+    micro_final$Micro = factor(micro_final$Micro, levels=names)
+    levels(micro_final$Micro) = names_plot
+
+    # Make invidiual plots by image types
+
+    plot_zscore = function(df, cont_df) {
+        zscores = ggplot(data=df, aes(x = x_toplot, y = y_toplot)) +
+            geom_raster(aes(fill = intensity), alpha = 1) +
+            scale_fill_gradient2(low="blue", mid="white", high="red", midpoint=0, limits=c(-3,3), breaks=c(-3,0,3), oob=squish, name="Z-score") +
+            geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="black") +
+            coord_fixed(ratio = 1) +
+            facet_grid(slice_index~Micro) +
+            labs(title = "Zscores") +
+            theme_void() +
+            theme(plot.background = element_rect(fill = "white"),
+                plot.title = element_text(hjust = 0.5),
+                strip.text.y=element_text(size=0),
+                strip.text.x=element_text(size=12),
+                panel.spacing = unit(0, "lines"),
+                legend.position="none")
+        # ggsave("test_zscore.png")
+
+        return(zscores)
+    }
+
+    # plot_flair = function(df, cont_df) {
+    plot_flair = function(df) {
+        flair = ggplot(data = df, aes(x = x_toplot, y = y_toplot)) +
+            geom_raster(aes(fill = intensity), alpha = 1) +
+            scale_fill_gradient(low='black', high= 'white', limits=c(0,150), oob=squish, guide = "none") +
+            # geom_path(aes(group=interaction(label, obj)), data=cont_df, size=0.1, color="red") +
+            coord_fixed(ratio = 1) +
+            facet_wrap(~slice_index, ncol=1) +
+            labs(title = "FLAIR") +
+            theme_void() +
+            theme(plot.background = element_rect(fill = "white"),
+                plot.title = element_text(hjust = 0.5),
+                strip.text.y=element_text(size=12),
+                strip.text.x=element_text(size=0),
+                panel.spacing = unit(0, "lines"))
+        # ggsave("test_flair.png")
+    }
+
+    plot_bison = function(df) {
+        names_bison = c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH')
+        color_scale_bison = tibble(
+            labels=seq(from=0, to=9), 
+            colors=c("#000000", "#6a009d", "#0035dd", "#00a4bb", "#009b0f", "#00e100", "#ccf900", "#ffb000", "#e50000", "#fffefb"))
+        
+        bison = ggplot(data = df %>% left_join(color_scale_bison, by=c("intensity"="labels")), aes(x = x_toplot, y = y_toplot)) +
+            geom_raster(aes(fill = colors), alpha = 1) +
+            scale_fill_identity(guide = "none") +
+            coord_fixed(ratio = 1) +
+            facet_wrap(~slice_index, ncol=1) +
+            labs(title = "Labels") +
+            theme_void() +
+            theme(plot.background = element_rect(fill = "white"),
+                plot.title = element_text(hjust = 0.5),
+                strip.text.y=element_text(size=12),
+                strip.text.x=element_text(size=0),
+                panel.spacing = unit(0, "lines"))
+        # ggsave("test_bison.png")
+
+        return(bison)
+    }
+
+    zscores = plot_zscore(micro_final %>% 
+                            filter(mask_value > 0.5) %>% 
+                            mutate(intensity = ifelse(abs(intensity) < up_thresh, 0, intensity)),
+                        contour_final)
+    # flair = plot_flair(flair_final %>% filter(mask_value > 0.5), label_ukb_final)
+    flair = plot_flair(flair_final %>% filter(mask_value > 0.5))
+    bison = plot_bison(label_final %>% filter(mask_value > 0.5))
+
+    # Combine image types with patchwork
+    plt_layout <- "
+    ABCCCCCCCCC
+    ABCCCCCCCCC
+    "
+    
+    final_plot <- flair + bison + zscores + plot_layout(design=plt_layout)
+
+    png(paste0(output, "_thresh_",up_thresh,".png"), width=3000, height=1500, res=300)
+    print(final_plot)
+    dev.off()
+    print(paste0(output, "_thresh_",up_thresh,".png"))
 }
 
 raw_png = function(input, output, anlm) {
@@ -465,3 +625,34 @@ foreach(i=1:length(ids), .packages = c('RMINC', 'RColorBrewer', 'tidyverse', 'sc
 }
 
 stopCluster(parallelCluster)
+
+# Thresholded z-scored maps for a few subjects
+
+ids_thresh_viz = c("1431895")
+
+for (i in 1:length(ids_thresh_viz)) {
+    print(ids_thresh_viz[i])
+
+    dx_id = dx[which(dx$ID %in% ids_thresh_viz[i]),]
+    # dx_id <- dx_id[order(substr(dx_id$icd_code, 1, 1), as.numeric(substr(dx_id$icd_code, 2, 3))), ]
+    dx_id <- dx_id[order(as.numeric(dx_id$days_mri_dx)), ]
+
+    id_string = paste0(ids_thresh_viz[i], "_", dx_id$Age[1], ifelse(dx_id$Sex[1] == "Female", "F", "M"))
+    if(is.na(dx_id$icd_code[1]) == FALSE) {
+        for (d in 1:length(dx_id$icd_code)) {
+            id_string = paste0(id_string, "_", dx_id$icd_code[d])
+        }
+    }
+
+    vis_dir=paste0("./visualization/indiv/",id_string)
+    dir.create(vis_dir, showWarnings=FALSE)
+
+    # Make PNG
+    thresholds = c(1,2,3)
+
+    for (t in 1:length(thresh)) {
+        input_z = paste0("./results/mnc/",ids_thresh_viz[i],"_zscore_anlm")
+        output_z = paste0(vis_dir,"/",id_string)
+        zscore_png_thresh(input_z, output_z, thresholds[t])
+    }
+}
