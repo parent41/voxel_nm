@@ -44,6 +44,7 @@ icd_codes_list <- readRDS("../../../WMH_micro_spatial/Analyses_nm/predict_firsto
 
 lm_results = as.data.frame(fread("./results/lm_results.tsv"))
 lm_results[,c(1,2,3,4)] = as.data.frame(lapply(lm_results[,c(1,2,3,4)], as.factor))
+lm_results = lm_results[complete.cases(lm_results),]
 
 # Plot beta coefficients and pvalues
 
@@ -57,7 +58,11 @@ plot_beta_pval = function(dx_name, icd_list, name) {
     df_toplot = subset(lm_results, dx == dx_name & Label %in% c(3,4,5,6,7,10))
 
     df_toplot$fdr_group = p.adjust(df_toplot$pval_group, method="fdr")
+    df_toplot$fdr_group_sig = ifelse(df_toplot$fdr_group < 0.01, TRUE, FALSE)
 
+    micro_list = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
+
+    # Plot fdr-corrected p-values
     plot_pval = ggplot(df_toplot, aes(x=Label, y=fdr_group, color=factor(Micro, levels=names), group = factor(Micro, levels=names))) + 
           # geom_point(position = position_jitter(w = 0.4, h = 0)) +
           geom_point(position = position_dodge(0.8)) +
@@ -77,13 +82,13 @@ plot_beta_pval = function(dx_name, icd_list, name) {
                 axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
                 panel.spacing.x = unit(1, "cm"))
     
-    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=names), group = factor(Micro, levels=names))) + 
-          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
-          geom_point(position = position_dodge(0.8)) +
-          # geom_line(position = position_dodge(0.8), alpha=0.2) +
-          scale_color_manual(name="Micro", values=color_scale) + 
+    # Plot standardized betas
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=fdr_group_sig, fill=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
+          geom_point(shape=21, position = position_dodge(0.8)) +
+          scale_fill_manual(name = "Micro", values = color_scale) +
+          scale_color_manual(name = "FDR<0.01", values=c("black", "red")) + 
           scale_x_discrete(labels = tissue_toplot, name="") +
-          scale_y_continuous(limits = c(-1,1), breaks = seq(-1, 1, by=0.2), oob=squish, name="\n\nStandardized Beta") +
+          scale_y_continuous(limits = c(-1,ifelse(max(df_toplot$Estimate_group)<=1, 1, max(df_toplot$Estimate_group))), breaks = seq(-1, ifelse(max(df_toplot$Estimate_group)<=1, 1, ceiling(max(df_toplot$Estimate_group) * 5) / 5), by=0.2), oob=squish, name="\n\nStandardized Beta") +
           geom_hline(yintercept = 0, alpha=1) + 
           geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
           facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
@@ -94,9 +99,10 @@ plot_beta_pval = function(dx_name, icd_list, name) {
                 plot.title = element_text(hjust = 0.5),
                 axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
                 panel.spacing.x = unit(1, "cm"))
-      
+
     wrap_plots(plot_betas, plot_pval, ncol=1)
     ggsave(name, width=6*(length(unique(df_toplot$Threshold))), height=10)
+
     print(name)
 }
 
@@ -113,7 +119,9 @@ plot_beta_pval_nodbm = function(dx_name, icd_list, name) {
     df_toplot = subset(lm_results, dx == dx_name & Label %in% c(3,4,5,6,7,10) & Micro %in% micro_list)
 
     df_toplot$fdr_group = p.adjust(df_toplot$pval_group, method="fdr")
+    df_toplot$fdr_group_sig = ifelse(df_toplot$fdr_group < 0.01, TRUE, FALSE)
 
+    # Plot fdr-corrected p-values
     plot_pval = ggplot(df_toplot, aes(x=Label, y=fdr_group, color=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
           # geom_point(position = position_jitter(w = 0.4, h = 0)) +
           geom_point(position = position_dodge(0.8)) +
@@ -133,13 +141,13 @@ plot_beta_pval_nodbm = function(dx_name, icd_list, name) {
                 axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
                 panel.spacing.x = unit(1, "cm"))
     
-    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
-          # geom_point(position = position_jitter(w = 0.4, h = 0)) +
-          geom_point(position = position_dodge(0.8)) +
-          # geom_line(position = position_dodge(0.8), alpha=0.2) +
-          scale_color_manual(name="Micro", values=color_scale) + 
+    # Plot standardized betas
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=fdr_group_sig, fill=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
+          geom_point(shape=21, position = position_dodge(0.8)) +
+          scale_fill_manual(name = "Micro", values = color_scale) +
+          scale_color_manual(name = "FDR<0.01", values=c("black", "red")) + 
           scale_x_discrete(labels = tissue_toplot, name="") +
-          scale_y_continuous(limits = c(-1,1), breaks = seq(-1, 1, by=0.2), oob=squish, name="\n\nStandardized Beta") +
+          scale_y_continuous(limits = c(-1,ifelse(max(df_toplot$Estimate_group)<=1, 1, max(df_toplot$Estimate_group))), breaks = seq(-1, ifelse(max(df_toplot$Estimate_group)<=1, 1, ceiling(max(df_toplot$Estimate_group) * 5) / 5), by=0.2), oob=squish, name="\n\nStandardized Beta") +
           geom_hline(yintercept = 0, alpha=1) + 
           geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
           facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
@@ -150,21 +158,82 @@ plot_beta_pval_nodbm = function(dx_name, icd_list, name) {
                 plot.title = element_text(hjust = 0.5),
                 axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
                 panel.spacing.x = unit(1, "cm"))
-      
+
     wrap_plots(plot_betas, plot_pval, ncol=1)
-    ggsave(name, width=5*(length(unique(df_toplot$Threshold))), height=10)
+    ggsave(name, width=6*(length(unique(df_toplot$Threshold))), height=10)
+
     print(name)
 }
 
+
+plot_beta_pval_comm_meet = function(dx_name, icd_list, name) {
+    color_scale = c(MD = "#04319E", ISOVF = "#8298CF",
+                    FA = "#2B520B" , ICVF= "#448312", OD="#A2C189",
+                    T2star="#D36108", QSM="#E9B084")
+    n_dx = length(unique(df$ID[which(df$icd_code %in% icd_list)]))
+
+    micro_list = c("MD", "ISOVF", "FA", "ICVF", "OD", "T2star", "QSM")
+
+    df_toplot = subset(lm_results, dx == dx_name & Label %in% c(3,4,5,6,7,10) & Micro %in% micro_list & Threshold == 2)
+
+    df_toplot$fdr_group = p.adjust(df_toplot$pval_group, method="fdr")
+    df_toplot$fdr_group_sig = ifelse(df_toplot$fdr_group < 0.01, TRUE, FALSE)
+
+    df_toplot$Micro = droplevels(df_toplot$Micro)
+
+    # Plot standardized betas
+    plot_betas = ggplot(df_toplot, aes(x=Label, y=Estimate_group, color=fdr_group_sig, fill=factor(Micro, levels=micro_list), group = factor(Micro, levels=micro_list))) + 
+          geom_point(shape=21, position = position_dodge(0.8), size=4) +
+          scale_fill_manual(name = "Micro", values = color_scale) +
+          scale_color_manual(name = "FDR<0.01", values=c("black", "red")) + 
+          scale_x_discrete(labels = tissue_toplot, name="") +
+          scale_y_continuous(limits = c(-1,ifelse(max(df_toplot$Estimate_group)<=1, 1, max(df_toplot$Estimate_group))), breaks = seq(-1, ifelse(max(df_toplot$Estimate_group)<=1, 1, ceiling(max(df_toplot$Estimate_group) * 5) / 5), by=0.2), oob=squish, name="\n\nStandardized Beta") +
+          geom_hline(yintercept = 0, alpha=1) + 
+          geom_vline(xintercept=seq(0,length(levels(df_toplot$Label)))+0.5 ,color="black", alpha=0.2) +
+          # facet_wrap(~Threshold, ncol = length(unique(df_toplot$Threshold))) +
+          # scale_y_continuous(name = paste0("% abnormal voxels above Z=",levels(results$threshold)[i]), limits = c(0, quantile(df_tmp$perc_vox_above_thresh, 0.90))) +
+          ggtitle(paste0(dx_name, " (n = ",n_dx,")")) +
+          theme_classic() + 
+          theme(text = element_text(size=15),
+                plot.title = element_text(hjust = 0.5),
+                axis.text.x = element_text(angle = 30, vjust = 1, hjust=1, size=15),
+                panel.spacing.x = unit(1, "cm"))
+      
+    ggsave(name, width=10, height=5)
+
+    print(name)
+}
+
+
+# dx_name="cust_dementia_no_vasc"
+# icd_list = c("F00","F03","G30")
+# name="test.png"
 
 for (d in 2:length(icd_codes_list)) {
   print(names(icd_codes_list)[d])
 
   try(plot_beta_pval(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],".png")),silent=TRUE)
   try(plot_beta_pval_nodbm(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],"_nodbm.png")), silent=TRUE)
+  try(plot_beta_pval_comm_meet(names(icd_codes_list)[d], icd_codes_list[[d]], paste0("./visualization/beta_pvals_",names(icd_codes_list)[d],"_comm_meet.png")), silent=TRUE)
 }
 
+# Plot average effect size across dx by metric (which metric is most sensitive to pathology?)
 
+plot_betas_by_metric = function() {
+
+  icd_chapters = subset(df, select = c("chapter", "categ"))
+  colnames(icd_chapters) = c("chapter", "dx")
+
+  for (t in 1:length(levels(lm_results$Threshold))) {
+    thresh = levels(lm_results$Threshold)[t]
+    print(thresh)
+
+    to_plot = lm_results %>% filter(Threshold == thresh) %>%
+      left_join(icd_chapters, by = "dx") %>%
+      glimpse()
+  }
+
+}
 
 
 

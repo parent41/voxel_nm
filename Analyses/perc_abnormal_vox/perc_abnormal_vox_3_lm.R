@@ -6,11 +6,6 @@ library(ggplot2)
 library(data.table)
 library(ggpubr)
 library(scales)
-# install.packages(c("fmsb"))
-# install.packages("devtools")
-# devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE, lib="/gpfs/fs1/home/m/mchakrav/parent41/R/x86_64-pc-linux-gnu-library/4.1")
-# library(fmsb)
-# library(ggradar)
 
 tissue_nm = c('Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM')
 tissue_all=c('Ventricules', 'CSF', 'Cerebellum_GM', 'Cerebellum_WM', 'Brainstem', 'Subcortical_GM', 'Cortical_GM', 'Cerebral_NAWM', 'WMH', 'Cerebral_WM')
@@ -108,6 +103,9 @@ lm_perc_abn = function(dx_icd, dx_name) {
 # Results for all categories of diagnoses
 
 icd_codes_list <- readRDS("../../../WMH_micro_spatial/Analyses_nm/predict_firstocc_categ/results/icd_codes_list.rds")
+
+# dx_icd = c("F00", "F03", "G30")
+# dx_name = "cust_dementia_no_vasc"
 
 res_dx_list = list()
 for (dx in 2:length(icd_codes_list)) {
